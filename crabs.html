@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find the Crab!</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            background-image: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .argyle-pattern {
+            background-image: 
+                linear-gradient(45deg, rgba(0, 0, 0, 0.1) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.1) 75%, rgba(0, 0, 0, 0.1)),
+                linear-gradient(-45deg, rgba(0, 0, 0, 0.1) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, 0.1) 75%, rgba(0, 0, 0, 0.1));
+            background-size: 50px 50px;
+        }
+
+        #gameBoard {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            max-width: 600px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .card {
+            width: 100px;
+            height: 100px;
+            background-color: #000;
+            color: #000;
+            border: 2px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            border-radius: 25px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transform-style: preserve-3d;
+            transition: transform 0.6s, color 0.6s, left 0.5s, top 0.5s, opacity 0.5s;
+            position: absolute;
+            opacity: 0;
+        }
+
+        .card.flipped {
+            transform: rotateY(360deg);
+        }
+
+        .card-content {
+            position: absolute;
+            backface-visibility: hidden;
+        }
+
+        .card-front {
+            transform: rotateY(0deg);
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+        }
+
+        .hidden .card-front {
+            display: none;
+        }
+
+        .hidden .card-back {
+            display: flex;
+        }
+
+        .card.flipped .card-front {
+            display: flex;
+        }
+
+        .card.flipped .card-back {
+            display: none;
+        }
+
+        .dealing {
+            animation: dealCard 0.5s ease forwards;
+        }
+
+        @keyframes dealCard {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes flipSequentially {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(180deg); }
+            100% { transform: rotateY(360deg); }
+        }
+
+        @keyframes spinAndFlip {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.2); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        @keyframes bob {
+            0% { transform: translate(-50%, -50%) translateY(-10px); }
+            100% { transform: translate(-50%, -50%) translateY(10px); }
+        }
+
+        @keyframes floatAway {
+            to { transform: translate(-50%, -200%); opacity: 0; }
+        }
+
+        #congratsCard {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            border: 2px solid #000;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            animation: bob 1s infinite alternate, floatAway 3s 3s forwards;
+        }
+
+        #settingsButton {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+        }
+
+        #settingsButton:hover {
+            background-color: #0056b3;
+        }
+
+        #settingsPopup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            border: 2px solid #000;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: left;
+        }
+
+        #settingsPopup label, #settingsPopup input, #settingsPopup button {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        #numMatches {
+            width: auto;
+            padding: 5px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+<h1>Find the Crab!</h1>
+<h2>A game by Uncle Geggy and Bean</h2>
+<label for="numMatches">Number of Cards:</label>
+<select id="numMatches" onchange="startGame()">
+    <option value="2" selected>2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+    <option value="8">8</option>
+    <option value="9">9</option>
+    <option value="10">10</option>
+</select>
+<div id="gameBoard"></div>
+<div id="congratsCard"></div>
+<button id="settingsButton" onclick="toggleSettingsPopup()">Settings</button>
+<div id="settingsPopup">
+    <h2>Settings</h2>
+    <label for="cardBackColor">Card Back Color:</label>
+    <input type="color" id="cardBackColor" value="#000000" onchange="applySettings()">
+    <label for="bgColor">Background Color:</label>
+    <input type="color" id="bgColor" value="#f0f0f0" onchange="applySettings()">
+    <label for="patternToggle">Toggle Pattern:</label>
+    <input type="checkbox" id="patternToggle" onchange="togglePattern()">
+    <label for="colorBlindToggle">Color Blind Accessibility:</label>
+    <input type="checkbox" id="colorBlindToggle" onchange="toggleColorBlindMode()">
+    <button onclick="applySettings()">Apply</button>
+    <button onclick="resetSettings()">Reset to Default</button>
+</div>
+<script>
+   
+
+    function generateCards(numCards) {
+        const cards = [];
+        for (let i = 0; i < numCards; i++) {
+            cards.push({ isCrab: false });
+        }
+        const crabIndex = Math.floor(Math.random() * numCards);
+        cards[crabIndex].isCrab = true;
+        return cards;
+    }
+function reattachTouchListeners() {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        card.addEventListener('touchstart', (event) => {
+            event.preventDefault();
+            flipCard(card);
+        });
+        card.addEventListener('click', () => flipCard(card));
+    });
+}
+    function startGame() {
+        lockBoard=false
+        const numMatches = document.getElementById('numMatches').value;
+        localStorage.setItem('numMatches', numMatches);
+        const gameBoard = document.getElementById('gameBoard');
+        gameBoard.innerHTML = '';
+        const cards = generateCards(numMatches);
+        const cardBackColor = localStorage.getItem('cardBackColor') || '#000000';
+        const positions = [];
+        const cardWidth = 100;
+        const cardHeight = 100;
+        const gap = 20;
+        const boardWidth = gameBoard.clientWidth;
+        const cols = Math.floor(boardWidth / (cardWidth + gap));
+        const rows = Math.ceil(numMatches / cols);
+        gameBoard.style.height = `${rows * (cardHeight + gap)}px`;
+
+        cards.forEach((content, index) => {
+            const row = Math.floor(index / cols);
+            const col = index % cols;
+            const left = col * (cardWidth + gap) + 20;
+            const top = row * (cardHeight + gap);
+            positions.push({ left, top });
+
+            const card = document.createElement('div');
+            card.className = 'card hidden dealing';
+            card.style.backgroundColor = cardBackColor;
+            card.style.left = `${left}px`;
+            card.style.top = `${top}px`;
+            card.style.opacity = 0;
+            card.style.animationDelay = `${index * 0.1}s`;
+            card.innerHTML = `
+                <div class="card-content card-front">
+                    ${content.isCrab ? '<img src="crab.svg" alt="Crab" style="width:80%;height:80%;">' : '<span style="font-size: 180%; line-height: 0;">💩</span>'}
+                </div>
+                <div class="card-content card-back">?</div>
+            `;
+            card.addEventListener('click', () => flipCard(card));
+            card.addEventListener('touchstart', (event) => {
+                event.preventDefault();
+                flipCard(card);
+            });
+
+            gameBoard.appendChild(card);
+
+            setTimeout(() => {
+                card.style.opacity = 1;
+            }, index * 100);
+        });
+
+        setTimeout(() => {
+            const dealtCards = document.querySelectorAll('.card.dealing');
+            dealtCards.forEach(card => {
+                card.classList.remove('dealing');
+            });
+        }, cards.length * 100 + 500);
+
+        setTimeout(() => {
+            showCrabCard();
+        }, cards.length * 100 + 1500);
+    }
+
+function flipCard(card) {
+    if (lockBoard) return;
+    if (card.classList.contains('flipped')) return;
+
+    card.classList.remove('hidden');
+    card.classList.add('flipped');
+    const img = card.querySelector('img');
+    if (img && img.getAttribute('src') === 'crab.svg') {
+        showCongrats();
+    }
+}
+
+
+    function showCrabCard() {
+        const cards = Array.from(document.querySelectorAll('.card'));
+        cards.forEach(card => {
+            if (card.querySelector('img')) {
+                card.classList.remove('hidden');
+            }
+        });
+
+        let flipCount = 3;
+        const flipInterval = setInterval(() => {
+            cards.forEach(card => {
+                if (card.querySelector('img')) {
+                    card.classList.toggle('flipped');
+                }
+            });
+            flipCount++;
+            if (flipCount >= 10) {
+                clearInterval(flipInterval);
+            }
+        }, 500);
+
+        setTimeout(() => {
+            cards.forEach(card => {
+                card.classList.remove('flipped');
+                card.classList.add('hidden');
+            });
+            showStartMessage();
+        }, 2000);
+    }
+
+    function showStartMessage() {
+        const congratsCard = document.getElementById('congratsCard');
+        congratsCard.innerHTML = `
+            <h2>Get Ready!</h2>
+            <p>Watch carefully as the cards shuffle!</p>
+        `;
+        congratsCard.style.display = 'block';
+
+        setTimeout(() => {
+            congratsCard.style.display = 'none';
+            shuffleCards();
+        }, 1000);
+    }
+
+    function shuffleCards() {
+    const cards = Array.from(document.querySelectorAll('.card'));
+    const gameBoard = document.getElementById('gameBoard');
+    const cardWidth = 100;
+    const cardHeight = 100;
+    const gap = 10;
+    const positions = Array.from(cards).map(card => ({
+        left: parseFloat(card.style.left),
+        top: parseFloat(card.style.top)
+    }));
+
+    lockBoard = false;
+    let shuffleCount = 5;
+    let shuffleInterval = setInterval(() => {
+        for (let i = positions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [positions[i], positions[j]] = [positions[j], positions[i]];
+        }
+        positions.forEach((pos, index) => {
+            cards[index].style.left = `${pos.left}px`;
+            cards[index].style.top = `${pos.top}px`;
+        });
+        shuffleCount--;
+        if (shuffleCount === 0) {
+            clearInterval(shuffleInterval);
+            lockBoard = false;
+            showPlayMessage();
+            reattachTouchListeners();
+        }
+    }, 500);
+}
+
+
+
+
+
+    function showPlayMessage() {
+
+        const congratsCard = document.getElementById('congratsCard');
+        congratsCard.innerHTML = `
+            <h2>Start!</h2>
+            <p>Find the crab card!</p>
+        `;
+        congratsCard.style.display = 'block';
+
+        setTimeout(() => {
+            congratsCard.style.display = 'none';
+        }, 2000);
+    }
+
+    function flipCard(card) {
+        if (lockBoard) return;
+
+        if (card.classList.contains('flipped')) return;
+
+        card.classList.remove('hidden');
+        card.classList.add('flipped');
+        const img = card.querySelector('img');
+        if (img && img.getAttribute('src') === 'crab.svg') {
+            showCongrats();
+        }
+    }
+
+    function showCongrats() {
+        const congratsCard = document.getElementById('congratsCard');
+        congratsCard.innerHTML = `
+            <h2>Congratulations!</h2>
+            <p>You found the crab!</p>
+        `;
+        congratsCard.style.display = 'block';
+
+        const cards = document.querySelectorAll('.card');
+        let flipSequentially = true;
+
+        function toggleAnimation() {
+            if (flipSequentially) {
+                cards.forEach((card, index) => {
+                    card.style.animation = `flipSequentially 1s ${index * 0.1}s infinite`;
+                });
+            } else {
+                cards.forEach(card => {
+                    card.style.animation = 'spinAndFlip 1s infinite';
+                });
+            }
+            flipSequentially = !flipSequentially;
+        }
+
+        toggleAnimation();
+        const animationInterval = setInterval(toggleAnimation, 3000);
+
+        setTimeout(() => {
+            clearInterval(animationInterval);
+            congratsCard.style.display = 'none';
+            cards.forEach(card => {
+                card.style.animation = '';
+            });
+            startGame();
+        }, 6000);
+    }
+
+  function reattachTouchListeners() {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        card.addEventListener('touchstart', (event) => {
+            event.preventDefault();
+            flipCard(card);
+        });
+        card.addEventListener('click', () => flipCard(card));
+    });
+}
+
+    function toggleSettingsPopup() {
+        
+        const settingsPopup = document.getElementById('settingsPopup');
+        settingsPopup.style.display = settingsPopup.style.display === 'block' ? 'none' : 'block';
+       
+
+    // Close the popup when clicking outside of it
+      window.onclick = function(event) {
+        const popup = document.getElementById('settingsPopup');
+        const button = document.getElementById('settingsButton');
+        if (event.target !== popup && event.target !== button && !popup.contains(event.target)) {
+            popup.style.display = 'none';
+        }}
+
+       
+        //this whole section is a mess really dont need both of these listeners but it wont function without both i messed something up somewhere but it works so i dont care to look into it
+        //applySettings()
+    }
+
+    function applySettings() {
+        const cardBackColor = document.getElementById('cardBackColor').value;
+        const bgColor = document.getElementById('bgColor').value;
+        const patternToggle = document.getElementById('patternToggle').checked;
+        const colorBlindToggle = document.getElementById('colorBlindToggle').checked;
+
+        localStorage.setItem('cardBackColor', cardBackColor);
+        localStorage.setItem('bgColor', bgColor);
+        localStorage.setItem('patternToggle', patternToggle);
+        localStorage.setItem('colorBlindToggle', colorBlindToggle);
+
+        const cards = document.querySelectorAll('.card.hidden');
+        cards.forEach(card => {
+            card.style.backgroundColor = cardBackColor;
+            card.style.color = cardBackColor;
+        });
+        document.body.style.backgroundColor = bgColor;
+        document.body.classList.toggle('argyle-pattern', patternToggle);
+        toggleColorBlindMode();
+        toggleSettingsPopup();
+    }
+
+    function resetSettings() {
+        localStorage.removeItem('cardBackColor');
+        localStorage.removeItem('bgColor');
+        localStorage.removeItem('patternToggle');
+        localStorage.removeItem('colorBlindToggle');
+        document.getElementById('cardBackColor').value = '#000000';
+        document.getElementById('bgColor').value = '#f0f0f0';
+        document.getElementById('patternToggle').checked = false;
+        document.getElementById('colorBlindToggle').checked = false;
+        applySettings();
+    }
+
+    function togglePattern() {
+        const patternToggle = document.getElementById('patternToggle').checked;
+        document.body.classList.toggle('argyle-pattern', patternToggle);
+        
+    }
+
+    function toggleColorBlindMode() {
+        const colorBlindToggle = document.getElementById('colorBlindToggle').checked;
+        const colorElements = document.querySelectorAll('.card-front .color');
+        colorElements.forEach(element => {
+            element.style.display = colorBlindToggle ? 'block' : 'none';
+        });
+        
+    }
+
+   document.addEventListener('DOMContentLoaded', () => {
+    const cardBackColor = localStorage.getItem('cardBackColor') || '#000000';
+    const bgColor = localStorage.getItem('bgColor') || '#f0f0f0';
+    const patternToggle = localStorage.getItem('patternToggle') === 'true';
+    const colorBlindToggle = localStorage.getItem('colorBlindToggle') === 'true';
+    const numMatches = localStorage.getItem('numMatches') || 2;
+
+    document.getElementById('cardBackColor').value = cardBackColor;
+    document.getElementById('bgColor').value = bgColor;
+    document.getElementById('patternToggle').checked = patternToggle;
+    document.getElementById('colorBlindToggle').checked = colorBlindToggle;
+
+    document.body.style.backgroundColor = bgColor;
+    document.body.classList.toggle('argyle-pattern', patternToggle);
+    toggleColorBlindMode();
+
+    document.getElementById('numMatches').value = numMatches;
+    startGame();
+});
+</script>
+</body>
+</html>
+

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>BeanBytes</title>
+    <style>
+        @keyframes slideInFromBottom {
+            0% {
+                transform: translateY(100%);
+            }
+            100% {
+                transform: translateY(0);
+            }
+        }
+        @keyframes gradient {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5; /* Off-white background */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            color: #000; /* Black text for better contrast against off-white background */
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: calc(100% - 40px);
+            max-width: 300px;
+            height: 200px;
+            margin: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            color: black;
+            font-size: 20px;
+            animation: slideInFromBottom 1s ease-out;
+        }
+        .card:first-child {
+            background: linear-gradient(270deg, #AAF0C1, #8FC9A3, #D0E8F2);
+            background-size: 600% 600%;
+            animation: gradient 5s ease infinite, slideInFromBottom 1s ease-out;
+            background-color: transparent;
+        }
+        .card:nth-child(2) {
+            background: linear-gradient(270deg, #A8E6CF, #D3D3D3);
+            background-size: 600% 600%;
+            animation: gradient 5s ease infinite, slideInFromBottom 1s ease-out;
+            background-color: transparent;
+        }
+        .card:nth-child(3) {
+            background: linear-gradient(270deg, #B2DFDB, #FFCDD2, #C8E6C9);
+            background-size: 600% 600%;
+            animation: gradient 5s ease infinite, slideInFromBottom 1s ease-out;
+            background-color: transparent;
+        }
+        .card:nth-child(4), .card:nth-child(5) {
+            background: linear-gradient(270deg, #FFB6C1, #E0FFFF, #FFFACD);
+            background-size: 600% 600%;
+            animation: gradient 5s ease infinite, slideInFromBottom 1s ease-out;
+            background-color: transparent;
+        }
+        .card:nth-child(6) {
+            background: linear-gradient(270deg, #AAF0C1, #8FC9A3, #A2E4B8);
+            background-size: 600% 600%;
+            animation: gradient 5s ease infinite, slideInFromBottom 1s ease-out;
+            background-color: transparent;
+        }
+        .header {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #000;
+            text-align: center;
+            font-size: 24px;
+            color: #fff;
+        }
+        .subheader {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #666;
+            text-align: center;
+            font-size: 18px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">TinyBeanBytes</div>
+    <div class="subheader">Games By Zach E</div>
+    <div class="container">
+        
+        <a href="https://lingoleap.42web.io/LingoLeaps.html" class="card">Lingo Leaps</a>
+        <a href="https://lingoleap.42web.io/numbers.html" class="card">Numbers 24</a>
+        <a href="https://lingoleap.42web.io/cozy.html" class="card">Bloom Scroll</a>
+        <a href="https://TinyBeanBytes.free.nf/Memory.html" class="card">Memory Match</a>
+        <a href="https://TinyBeanBytes.free.nf/Crabs.html" class="card">Find the Crab!</a>
+      
+    </div>
+</body>
+</html>
