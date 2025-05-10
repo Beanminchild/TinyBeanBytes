@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Card Number Puzzle Game 24</title>
+   <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+
+        background: 
+        radial-gradient(circle, transparent 20%, rgba(255,255,255,.1) 21%, rgba(255,255,255,.1) 30%, transparent 31%, transparent 50%) var(--circle-size, 100px) var(--circle-size, 100px), 
+        radial-gradient(circle, transparent 20%, rgba(255,255,255,.1) 21%, rgba(255,255,255,.1) 30%, transparent 31%, transparent 50%) 50px 50px,
+        linear-gradient(var(--grid-color, #4CAF50) var(--grid-line-size, 2px), transparent var(--grid-line-size, 2px)) 0 -1px, /* Use the --grid-line-size property */
+        linear-gradient(90deg, var(--grid-color, #4CAF50) var(--grid-line-size, 2px), transparent var(--grid-line-size, 2px)) -1px 0; /* Use the --grid-line-size property */
+    background-size: var(--circle-size, 100px) var(--circle-size, 100px), var(--circle-size, 100px) var(--circle-size, 100px), 100px 100px, 100px 100px; /* Use the --circle-size property for the circles */
+    background-color:#333;
+
+
+#statsMenu {
+    position: fixed;
+    top: 70px; /* Adjust as needed */
+    right: 10px;
+}
+
+#statsButton {
+    font-size: 24px;
+    background-color: #4CAF50; /* Calming Green */
+    color: white;
+    border: none;
+    border-radius: 50%; /* Make the button round */
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+}
+
+#statsPanel {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 60px; /* Adjust as needed */
+    background-color: #fff;
+    padding: 10px;
+    border-radius: 15px; /* More rounded corners */
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    width: 200px; /* Adjust as needed */
+}
+
+
+	  #total {
+        font-size: 2em; /* Make the text bigger */
+        padding: 10px; /* Add some space around the text */
+        border: 1px solid #000; /* Add a border */
+        border-radius: 5px; /* Round the corners */
+        transition: transform 0.3s ease; /* Smooth the rotation */
+    }
+
+
+
+
+    /* Add a new animation for the rotation */
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    /* Apply the animation when the total changes */
+    #total.changed {
+        animation: rotate 0.5s; /* Adjust the duration as needed */
+    }
+
+        }
+        #game {
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 15px; /* Make the corners rounded like a credit card */
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 90%; /* Set width to fit on mobile screens */
+            max-width: 400px; /* Limit maximum width for larger screens */
+        }
+         #game {
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 15px; /* Make the corners rounded like a credit card */
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 90%; /* Set width to fit on mobile screens */
+            max-width: 400px; /* Limit maximum width for larger screens */
+        }
+        #numbers {
+            /* z-index: 1; */
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        .number {
+            font-size: 2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .number:hover {
+            transform: scale(1.1);
+        }
+        #input {
+            width: 100%;
+            padding: 10px;
+            font-size: 1em;
+            margin-bottom: 20px;
+        }
+        #buttons {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .button {
+            padding: 10px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+	// Add this to your CSS
+		.operator {
+   		 transition: transform 0.3s ease;
+	}
+
+	.operator:hover {
+   	 transform: scale(1.1);
+	}
+
+        .button:active {
+            transform: scale(0.95);
+        }
+        .number.used {
+            transform: scale(0);
+            transition: transform 0.3s;
+        }
+        #total {
+            transition: color 0.3s;
+        }
+        @keyframes wipe {
+            0% { opacity: 1; }
+            50% { opacity: 0; transform: scaleX(0); }
+            100% { opacity: 0; transform: scaleX(0); }
+        }
+        @keyframes spinIn {
+            0% { opacity: 0; transform: scale(0) rotate(0deg); }
+            100% { opacity: 1; transform: scale(1) rotate(360deg); }
+        }
+        .number.wipe {
+            animation: wipe 0.5s forwards;
+        }
+        .number.spinIn {
+            animation: spinIn 0.5s forwards;
+        }
+   /* Add a new class for the operator buttons */
+  .operator {
+    font-size: 2em; /* Increase the font size */
+    padding: 20px; /* Increase the padding to make the buttons larger */
+    margin: -10px; /* Use a negative margin to bring the buttons closer together */
+    transition: transform 0.3s ease;
+}
+
+
+    /* Change the color of the + and * buttons to a calming green */
+    #add, #multiply {
+        background-color: #4CAF50; /* Calming Green */
+    }
+
+   /* Change the color of the - and / buttons to a deeper yellow */
+#subtract, #divide {
+    background-color: #FFD700; /* Deeper Yellow */
+}
+#settingsMenu {
+     display: flex;
+    flex-direction: column;
+    
+    position: fixed;
+    top: 10px;
+    right: 10px;
+}
+
+#clear {
+    background-color: red; /* Make the clear button red */
+    border-radius: 70%; /* Make the clear button circular */
+}
+
+#clear, #newNumbers {
+    
+    border-radius: 50%; /* Make both buttons circular */
+    width: 50px; /* Set a fixed width */
+    height: 50px; /* Set a fixed height */
+    line-height: 50px; /* Vertically center the text */
+    text-align: center; /* Horizontally center the text */
+    display: flex; /* Enable flexbox */
+    justify-content: center; /* Center content horizontally */
+    align-items: center; /* Center content vertically */
+}
+
+
+
+
+
+#settingsButton {
+    
+    font-size: 24px;
+    background-color: #4CAF50; /* Calming Green */
+    color: white;
+    border: none;
+    border-radius: 50%; /* Make the button round */
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+}
+
+#colorPicker {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 60px; /* Adjust as needed */
+    background-color: #fff;
+    padding: 10px;
+    border-radius: 15px; /* More rounded corners */
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    width: 200px; /* Adjust as needed */
+}
+
+#colorPicker label,
+#colorPicker input {
+    display: block; /* Stack the options on top of each other */
+    margin-bottom: 10px; /* Add some space between the options */
+}
+
+#winMessage {
+    /* ...existing styles... */
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+    animation: bobbing 0.5s infinite, bobAndFloat 10s forwards;
+    transform: translate(-128px, -50px); /* Adjust position */
+}
+
+@keyframes bobbing {
+  0%, 100% { transform: translateY(-50px); }
+  50% { transform: translateY(-70px); }
+}
+
+@keyframes bobAndFloat {
+  0% { transform: translateX(-128px) translateY(-50px); opacity: 1; }
+  25% { transform: translateX(-128px) translateY(-60px); opacity: 0.9; }
+  50% { transform: translateX(-128px) translateY(-30px); opacity: 0.75; }
+  75% { transform: translateX(-128px) translateY(-60px); opacity: 0.9; }
+  100% { transform: translateX(-128px) translateY(-100vh); opacity: .75; }
+}
+
+
+
+
+
+
+
+
+
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+
+@keyframes grow {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.5); }
+    50% { transform: scale(2); }
+    75% { transform: scale(1.5); }
+    100% { transform: scale(1); }
+}
+
+
+@keyframes slide {
+    0% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+    100% { transform: translateX(0); }
+}
+
+.confetti {
+    position: fixed;
+    top: -5%;
+    font-size: 20px; /* Adjust size as needed */
+    animation: fall linear infinite;
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(100vh);
+    }
+}
+
+
+.operator:active {
+    animation: 0.5s;
+}
+
+#add:active {
+    animation-name: rotate; /* Rotate for addition */
+}
+
+#subtract:active {
+    animation-name: shake; /* Shake for subtraction */
+}
+
+.clicked {
+    animation: 0.5s;
+}
+
+#add.clicked {
+    animation-name: rotate; /* Rotate for addition */
+}
+
+#subtract.clicked {
+    animation-name: shake; /* Shake for subtraction */
+}
+
+#multiply.clicked {
+    animation-name: grow; /* Grow for multiplication */
+}
+
+#divide.clicked {
+    animation-name: slide; /* Slide for division */
+}
+
+
+@media only screen and (max-width: 600px) {
+    body {
+        /* Use flex-direction column to stack the game and buttons vertically */
+        flex-direction: column;
+    }
+    #game {
+        /* Increase the game container size */
+        width: 100%;
+        max-width: none;
+        /* Increase the padding to give more space inside the game container */
+        padding: 10px;
+    }
+    #settingsMenu, #statsMenu {
+        /* Position the settings and stats buttons at the bottom of the screen */
+        position: fixed;
+        bottom: 10px;
+        /* Align the buttons to the center */
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    /* Add more styles as needed */
+}
+
+
+  @media only screen and (max-width: 600px) {
+            body {
+                /* Use flex-direction column to stack the game and buttons vertically */
+                flex-direction: column;
+            }
+            #game {
+                /* Increase the game container size */
+                width: 100%;
+                max-width: none;
+                /* Increase the padding to give more space inside the game container */
+                padding: 10px;
+            }
+            #settingsMenu, #statsMenu {
+                /* Position the settings and stats buttons at the bottom of the screen */
+                position: fixed;
+                bottom: 10px;
+                /* Align the buttons to the center */
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            /* Add more styles as needed */
+
+@media only screen and (max-width: 600px) {
+    body {
+        /* Use flex-direction column to stack the game and buttons vertically */
+        flex-direction: column;
+        /* Add some padding to the body to create space around the game card */
+        padding: 10px;
+    }
+    #game {
+        /* Increase the game container size */
+        width: calc(100% - 10px); /* Subtract the body padding from the width */
+        max-width: none;
+        /* Increase the padding to give more space inside the game container */
+        padding: 10px;
+    }
+    #settingsMenu, #statsMenu {
+        /* Position the settings and stats buttons at the top right of the screen */
+        position: flex;
+        top: 10px;
+        right: 10px;
+        left: auto;
+        
+    }
+    /* Add more styles as needed */
+}
+
+
+    </style>
+</head>
+<body>
+<div id="settingsMenu">
+    <button id="settingsButton">⚙</button>
+    <div id="colorPicker" style="display: none;">
+        <label for="bgColor">Background color:</label>
+        <input type="color" id="bgColor">
+        <label for="gridColor">Grid color:</label>
+        <input type="color" id="gridColor">
+        <label for="toggleCircles">Toggle circles:</label>
+        <input type="checkbox" id="toggleCircles" checked>
+        <label for="toggleGrid">Toggle grid:</label>
+        <input type="checkbox" id="toggleGrid" checked>
+        <label for="hideTotalCheckbox">Hide Total</label>
+        <input type="checkbox" id="hideTotalCheckbox">
+        
+    </div>
+</div>
+
+
+
+<div id="colorPicker" style="display: none;">
+    <label for="bgColor">Background color:</label>
+    <input type="color" id="bgColor">
+</div>
+<div id="statsMenu">
+    <button id="statsButton">📊</button>
+    <div id="statsPanel" style="display: none;">
+        <p id="totalSolved">Total solved: 0</p>
+        <p id="totalFailed">Total skipped: 0</p>
+        <p  id="lastSolveTime">Last solve time: N/A</p>
+        <p id="averageSolveTime">Average solve time: N/A</p>
+    </div>
+</div>
+
+
+<div id="winMessage" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; background-color: #fff; border-radius: 15px; text-align: center;">
+    <h2>Congratulations!</h2>
+    <p>You solved the puzzle.</p>
+</div>
+
+
+    <div id="game">
+<div id="total">0</div>
+        <div id="numbers">
+            <div class="number" id="num1"></div>
+            <div class="number" id="num2"></div>
+            <div class="number" id="num3"></div>
+            <div class="number" id="num4"></div>
+        </div>
+
+
+     <input type="text" id="input" placeholder="Make these numbers equal 24" readonly>
+
+
+        <div id="buttons">
+         
+	    <button class="button operator" id="add">+</button>
+	    <button class="button operator" id="subtract">-</button>
+	    <button class="button operator" id="multiply">*</button>
+	    <button class="button operator" id="divide">/</button>
+            <button class="button" id="clear">C</button>
+            <button class="button" id="newNumbers">↻</button>
+        </div>
+        
+        
+    </div>
+    <script>
+      const numbers = [document.getElementById('num1'), document.getElementById('num2'), document.getElementById('num3'), document.getElementById('num4')];
+const input = document.getElementById('input');
+const total = document.getElementById('total');
+const counter = document.getElementById('counter');
+const buttons = {
+    add: document.getElementById('add'),
+    subtract: document.getElementById('subtract'),
+    multiply: document.getElementById('multiply'),
+    divide: document.getElementById('divide'),
+    clear: document.getElementById('clear'),
+    newNumbers: document.getElementById('newNumbers')
+};
+let currentTotal = 0;
+let lastOperator = null;
+let solved = 0;
+let failed = 0;
+let startTime = null;
+let solveTimes = [];
+let newTotal = 0
+
+
+let selectedNumbers = 0; // Add a counter for the selected numbers
+
+function setupNumberListeners() {
+    for (let i = 0; i < 4; i++) {
+        numbers[i].addEventListener('click', function() {
+            if (!this.classList.contains('used')) {
+                input.value += this.innerText;
+                this.classList.add('used');
+                selectedNumbers++; // Increment the counter
+
+                if (lastOperator !== null) {
+                    // Perform the calculation immediately after an operator and a second number are clicked
+                    let oldTotal = currentTotal;
+                    currentTotal = eval(currentTotal + lastOperator + parseInt(this.innerText));
+                    total.innerText =  currentTotal;
+                    total.style.color = '#007BFF';
+                    setTimeout(function() {
+                        total.style.color = '#000';
+                    }, 300);
+                    // Reset lastOperator to null after the calculation
+                    lastOperator = null;
+
+                    // // If the currentTotal has changed, clear the input after 1.5 seconds
+                    // if (oldTotal !== currentTotal) {
+                    //     setTimeout(function() {
+                    //         input.value = '';
+                    //     }, 500);
+                    // }
+                } else {
+                    currentTotal = parseInt(this.innerText);
+                    total.innerText = currentTotal;
+                }
+
+                // If all 4 numbers have been selected, check the win condition
+      console.log(selectedNumbers)
+                if (selectedNumbers === 4) {
+                    checkWinCondition();
+                    selectedNumbers = 0; // Reset the counter
+                }
+            }
+        });
+    }
+}
+
+
+
+function generateNumbers() {
+    // Set the start time
+    startTime = new Date();
+    // Known sets of numbers that can form 24
+ const sets = [
+    // [1, 3, 4, 6],
+    [4, 4, 7, 2],
+    [3, 3, 8, 3],
+    [2, 8, 8, 8],
+    [1, 2, 8, 4],
+    [3, 6, 4, 2],
+    [7, 2, 7, 8],
+    [3, 8, 2, 1],
+    [6, 1, 5, 2],
+    [6, 1, 8, 9],
+    [8, 6, 9, 4],
+    [6, 8, 6, 2],
+    [2, 4, 8, 6],
+    [6, 4, 7, 8],
+    [8, 8, 6, 2],
+    [2, 1, 4, 3],
+    [4, 1, 8, 8],
+    [4, 1, 2, 9],
+    [3, 2, 6, 9],
+    [6, 4, 3, 2],
+    [4, 9, 4, 7],
+    [4, 8, 8, 8],
+    [5, 8, 1, 3],
+    [1, 6, 7, 2],
+    [2, 8, 6, 2],
+    [5, 6, 4, 4],
+    [1, 2, 8, 4],
+    [3, 8, 3, 4],
+    [3, 7, 1, 8],
+    [5, 3, 5, 8],
+    [6, 1, 8, 8],
+    [7, 3, 6, 1],
+    [8, 2, 1, 3],
+    [9, 3, 1, 4],
+    [6, 9, 1, 5],
+    [8, 8, 1, 2],
+
+    // Add more sets as needed
+];
+
+    // Choose a random set of numbers
+    const randomSet = sets[Math.floor(Math.random() * sets.length)];
+    for (let i = 0; i < 4; i++) {
+        numbers[i].innerText = randomSet[i];
+        numbers[i].classList.remove('used');
+        numbers[i].classList.add('wipe');
+        setTimeout(() => {
+            numbers[i].classList.remove('wipe');
+            numbers[i].classList.add('spinIn');
+            setTimeout(() => {
+                numbers[i].classList.remove('spinIn');
+            }, 500);
+        }, 500);
+    }
+    setupNumberListeners();
+}
+
+function generateNumbersNEW() {
+  // Set the start time
+selectedNumbers = 0; // Reset the counter
+    startTime = new Date();
+    for (let i = 0; i < 4; i++) {
+        numbers[i].innerText = Math.floor(Math.random() * 9) + 1;
+        numbers[i].classList.remove('used');
+        numbers[i].classList.add('wipe');
+        setTimeout(() => {
+            numbers[i].classList.remove('wipe');
+            numbers[i].classList.add('spinIn');
+            setTimeout(() => {
+                numbers[i].classList.remove('spinIn');
+            }, 500);
+        }, 500);
+        // rest of your code...
+    }
+setupNumberListeners();
+}
+
+buttons.add.addEventListener('click', function() {
+    input.value += '+';
+    lastOperator = '+';
+});
+
+buttons.subtract.addEventListener('click', function() {
+    input.value += '-';
+    lastOperator = '-';
+});
+
+buttons.multiply.addEventListener('click', function() {
+    input.value += '*';
+    lastOperator = '*';
+});
+
+buttons.divide.addEventListener('click', function() {
+    input.value += '/';
+    lastOperator = '/';
+});
+
+buttons.clear.addEventListener('click', function() {
+    input.value = '';
+    currentTotal = 0;
+     selectedNumbers = 0; // Reset the counter
+     total.innerText =  currentTotal;
+    lastOperator = null;
+    for (let i = 0; i < 4; i++) {
+        numbers[i].classList.remove('used');
+    }
+});
+
+buttons.newNumbers.addEventListener('click', function() {
+    input.value = '';
+    currentTotal = 0;
+    total.innerText = currentTotal;
+
+    lastOperator = null;
+    for (let i = 0; i < 4; i++) {
+        numbers[i].classList.remove('used');
+    }
+    generateNumbers();
+   // failed++;
+    counter.innerText = 'Solved: ' + solved + ', Skipped: ' + failed;
+});
+
+function checkWinCondition() {
+    if (currentTotal === 24) {
+currentTotal = 24
+total.innerText = currentTotal;
+    total.innerText = currentTotal;
+    solved++;
+        // Calculate the elapsed time in seconds
+        let elapsedTime = (new Date() - startTime) / 1000;
+        let minutes = Math.floor(elapsedTime / 60);
+        let seconds = Math.round(elapsedTime % 60);
+
+        // Record the solve time
+        solveTimes.push(elapsedTime);
+
+        // Update the stats panel
+        document.getElementById('totalSolved').textContent = 'Total solved: ' + solved;
+        document.getElementById('lastSolveTime').textContent = 'Last solve time: ' + minutes + 'm ' + seconds + 's';
+
+for (let i = 0; i < 300; i++) {
+            createConfetti();
+        }
+// UR USING SAME VARS SO THIS MUST BE RIGHT AFTER LAST
+  // Get the winMessage element
+        var winMessage = document.getElementById('winMessage');
+
+    // Update the text content
+        winMessage.innerHTML = '<h2>Congratulations!</h2><p>You solved the puzzle in ' + minutes + 'm ' + seconds + 's.</p><p>Total solved: ' + solved + '</p><p>Total skipped: ' + failed + '</p><p>Final total: ' + currentTotal + '</p>';
+
+        // Calculate the average solve time
+        let averageSolveTime = solveTimes.reduce((a, b) => a + b, 0) / solveTimes.length;
+        minutes = Math.floor(averageSolveTime / 60);
+        seconds = Math.round(averageSolveTime % 60);
+        document.getElementById('averageSolveTime').textContent = 'Average solve time: ' + minutes + 'm ' + seconds + 's';
+
+      
+  // Generate new numbers for the next puzzle
+        generateNumbers();
+    
+
+
+
+        // Display the winMessage element
+        winMessage.style.display = 'block';
+
+        // Hide the winMessage element after 5 seconds
+        setTimeout(function() {
+            // Apply the bobAndFloat animation
+            winMessage.style.animation = 'bobAndFloat 1s forwards';
+
+            // Set another timeout to hide the winMessage after the animation ends
+            setTimeout(function() {
+                winMessage.style.display = 'none';
+                winMessage.style.animation = '';
+// Simulate a click on the clear button
+        buttons.clear.click();
+            }, 1000); // This should match the duration of the bobAndFloat animation
+        }, 8300); // Adjust this time as needed
+
+        // Update the solved and failed counters
+    
+        counter.innerText = 'Solved: ' + solved + ', Skipped: ' + failed;
+
+      
+    }
+}
+
+
+// Assume `total` is a reference to the #total element
+// and `newTotal` is the new total value
+total.textContent = newTotal;
+total.classList.add('changed');
+
+// Remove the class after the animation completes to reset it
+setTimeout(() => {
+    total.classList.remove('changed');
+}, 500); // Match this duration to the animation duration
+
+
+buttons.newNumbers.addEventListener('click', function() {
+    // ...existing code...
+
+    failed++;
+    document.getElementById('totalFailed').textContent = 'Total skipped: ' + failed;
+});
+generateNumbers();
+
+document.getElementById('gridColor').addEventListener('change', function() {
+    document.body.style.setProperty('--grid-color', this.value);
+});
+
+document.getElementById('toggleCircles').addEventListener('change', function() {
+    if (this.checked) {
+        document.body.style.setProperty('--circle-size', '100px');
+    } else {
+        document.body.style.setProperty('--circle-size', '0');
+    }
+});
+
+document.getElementById('toggleGrid').addEventListener('change', function() {
+    if (this.checked) {
+        document.body.style.setProperty('--grid-line-size', '2px');
+    } else {
+        document.body.style.setProperty('--grid-line-size', '0');
+    }
+});
+
+
+
+
+document.getElementById('settingsButton').addEventListener('click', function() {
+    var colorPicker = document.getElementById('colorPicker');
+    if (colorPicker.style.display === 'none') {
+        colorPicker.style.display = 'block';
+    } else {
+        colorPicker.style.display = 'none';
+    }
+});
+
+
+document.getElementById('bgColor').addEventListener('change', function() {
+    document.body.style.backgroundColor = this.value;
+});
+
+document.querySelectorAll('.operator').forEach(function(operator) {
+    operator.addEventListener('click', function() {
+        this.classList.add('clicked');
+    });
+
+    operator.addEventListener('animationend', function() {
+        this.classList.remove('clicked');
+    });
+});
+
+document.querySelectorAll('.operator').forEach(function(operator) {
+    operator.addEventListener('click', function() {
+        this.classList.add('clicked');
+    });
+
+    operator.addEventListener('animationend', function() {
+        this.classList.remove('clicked');
+    });
+});
+
+function createConfetti() {
+    // Create a new confetti element
+    const confetti = document.createElement('div');
+    confetti.classList.add('confetti');
+
+    // Set the text content to '24'
+    confetti.textContent = '24';
+
+    // Randomly generate the left position and color
+    confetti.style.left = Math.random() * 100 + 'vw';
+    confetti.style.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
+
+    // Randomly generate the animation duration and delay
+    const duration = Math.random() * 5 + 1; // Between 1 and 3 seconds
+    const delay = Math.random() * 2; // Up to 2 seconds
+    confetti.style.animationDuration = `${duration}s`;
+    confetti.style.animationDelay = `${delay}s`;
+
+    // Add the confetti to the body
+    document.body.appendChild(confetti);
+
+    // Remove the confetti after it has fallen
+    setTimeout(() => {
+        confetti.remove();
+    }, (duration + delay) * 1000);
+}
+
+
+//listener for hide total check box in settings
+document.getElementById('hideTotalCheckbox').addEventListener('change', function(e) {
+    document.getElementById('total').style.display = e.target.checked ? 'none' : 'block';
+});
+
+
+
+document.getElementById('statsButton').addEventListener('click', function() {
+    var statsPanel = document.getElementById('statsPanel');
+    if (statsPanel.style.display === 'none') {
+        statsPanel.style.display = 'block';
+    } else {
+        statsPanel.style.display = 'none';
+    }
+});
+
+
+
+
+    </script>
+</body>
+</html>
