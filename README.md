@@ -8,3 +8,5 @@ The reason im using raw html like this is the free service im using to host the 
 ## How to Play
 Either go to https://Tinybeanbytes.free.nf or download the files and open the games in any browser :)
 
+All games work well on both desktop, and mobile.
+
