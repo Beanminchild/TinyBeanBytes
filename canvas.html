@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Mixer Game</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #181818;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      touch-action: none;
+    }
+    #gameCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+      z-index: 1;
+      background: #181818;
+      display: block;
+    }
+    #colorWheelToggle {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: #fff;
+      border-radius: 50%;
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: box-shadow 0.2s;
+      user-select: none;
+    }
+    #colorWheelToggle:active {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    #colorWheel {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) scale(0);
+      transform-origin: bottom center;
+      transition: transform 0.4s cubic-bezier(.68,-0.55,.27,1.55);
+      z-index: 9;
+      pointer-events: auto;
+    }
+    #colorWheel.open {
+      transform: translateX(-50%) scale(1);
+    }
+    .wheel {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: #222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+    .color-swatch {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .color-swatch.selected {
+      border: 4px solid #ffd700;
+      transform: scale(1.15);
+    }
+    #unlockMsg {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100%) scale(1);
+      background: rgba(255,255,255,0.98);
+      color: #222;
+      padding: 8px 18px 8px 12px;
+      border-radius: 18px;
+      font-size: 1.1rem;
+      font-weight: 500;
+      box-shadow: 0 6px 32px 0 rgba(0,0,0,0.13), 0 1.5px 6px 0 rgba(0,0,0,0.08);
+      opacity: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: none;
+      min-width: 0;
+      min-height: 0;
+      transition: opacity 0.32s cubic-bezier(.4,1.6,.6,1), transform 0.32s cubic-bezier(.4,1.6,.6,1);
+      will-change: opacity, transform;
+    }
+    #unlockMsg.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(24px) scale(1.08);
+      pointer-events: auto;
+      transition: opacity 0.18s cubic-bezier(.4,1.6,.6,1), transform 0.38s cubic-bezier(.4,1.6,.6,1);
+    }
+    #unlockMsg.hide {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-100%) scale(1);
+      transition: opacity 0.22s cubic-bezier(.4,1.6,.6,1), transform 0.22s cubic-bezier(.4,1.6,.6,1);
+    }
+    #unlockColor {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      border: 2.5px solid #e5e5e5;
+      margin-left: 0;
+      margin-right: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.13);
+      flex-shrink: 0;
+      transition: box-shadow 0.2s, border 0.2s;
+      display: inline-block;
+    }
+    #unlockText {
+      font-size: 1.08rem;
+      font-weight: 500;
+      color: #222;
+      letter-spacing: 0.01em;
+      margin-left: 2px;
+      margin-right: 2px;
+      white-space: nowrap;
+    }
+    #clearBtn {
+      position: fixed;
+      left: calc(50% - 60px);
+      bottom: 24px;
+      background: linear-gradient(135deg, #fffbe7 60%, #ffe066 100%);
+      border: none;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      font-size: 1.7rem;
+      cursor: pointer;
+      z-index: 12;
+      transition: opacity 0.4s cubic-bezier(.68,-0.55,.27,1.55), box-shadow 0.2s, transform 0.2s;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      user-select: none;
+      pointer-events: none;
+    }
+    #colorWheel.open + #clearBtn {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+    #clearBtn.pop {
+      transform: scale(1.1) rotate(-10deg);
+      box-shadow: 0 8px 32px rgba(255,224,102,0.25);
+    }
+    #clearBtn:active {
+      transform: scale(0.95);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    #bgToggleBtn {
+      position: fixed;
+      left: calc(50% + 60px);
+      bottom: 24px;
+      background: linear-gradient(135deg, #e7e7e7 60%, #cccccc 100%);
+      border: none;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      font-size: 1.7rem;
+      cursor: pointer;
+      z-index: 12;
+      transition: opacity 0.4s cubic-bezier(.68,-0.55,.27,1.55), box-shadow 0.2s, transform 0.2s;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 1;
+      user-select: none;
+      pointer-events: auto;
+    }
+    #bgToggleBtn:active {
+      transform: scale(0.95);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    @media (max-width: 600px) {
+      .wheel {
+        width: 160px;
+        height: 160px;
+      }
+      .color-swatch {
+        width: 36px;
+        height: 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="colorWheelToggle">🎨</div>
+  <button id="bgToggleBtn" title="Change Background">🖼️</button>
+  <div id="colorWheel">
+    <div class="wheel" id="wheelInner"></div>
+  </div>
+  <button id="clearBtn" title="Clear Drawing">🧹</button>
+  <div id="unlockMsg">
+    <span id="unlockText">New color unlocked!</span>
+    <span id="unlockColor"></span>
+  </div>
+  <script>
+    // --- Game State ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let W = window.innerWidth, H = window.innerHeight;
+    canvas.width = W;
+    canvas.height = H;
+
+    // --- Dot Size Responsive ---
+    function getDotRadius() {
+      return window.innerWidth <= 600 ? 32 : 48;
+    }
+    let dotRadius = getDotRadius();
+
+    // Utility functions
+    function rgbToStr(rgb) {
+      return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    }
+    function colorDist(a, b) {
+      return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2);
+    }
+    function colorsEqual(a, b) {
+      return colorDist(a, b) < 8; // tolerance for color match
+    }
+    function mixColors(a, b) {
+      // Simple average
+      return [
+        Math.round((a[0]+b[0])/2),
+        Math.round((a[1]+b[1])/2),
+        Math.round((a[2]+b[2])/2)
+      ];
+    }
+    function randomColor() {
+      // Pick from 8 basic colors for start, then expand
+      const base = [
+        [255,0,0], [0,255,0], [0,0,255],
+        [255,255,0], [0,255,255], [255,0,255],
+        [255,255,255], [0,0,0]
+      ];
+      return base[Math.floor(Math.random()*base.length)];
+    }
+    function colorToHex(rgb) {
+      return '#' + rgb.map(x => x.toString(16).padStart(2,'0')).join('');
+    }
+
+    // --- Game Data ---
+    let unlockedColors = [randomColor()];
+    let selectedColor = unlockedColors[0];
+    let allColors = [];
+    for(let r=0;r<=255;r+=51) for(let g=0;g<=255;g+=51) for(let b=0;b<=255;b+=51) allColors.push([r,g,b]);
+    let discovered = [selectedColor];
+    let dotColor = randomColor();
+    let dotPos = {x: W/2, y: H/3};
+    let dragging = false;
+    let dragPos = null;
+    let explosion = null;
+    let unlockTimeout = null;
+    let secretColorUnlocked = false;
+    const SECRET_COLOR = 'rainbow-secret'; // special marker
+
+    // --- Drawing State ---
+    let drawing = false;
+    let currentStroke = null;
+    let strokes = [];
+
+    // --- UI Elements ---
+    const colorWheel = document.getElementById('colorWheel');
+    const wheelInner = document.getElementById('wheelInner');
+    const colorWheelToggle = document.getElementById('colorWheelToggle');
+    const unlockMsg = document.getElementById('unlockMsg');
+    const unlockColor = document.getElementById('unlockColor');
+    const clearBtn = document.getElementById('clearBtn');
+    const bgToggleBtn = document.getElementById('bgToggleBtn');
+
+    // --- Dot Tap Helper ---
+    function isOnDot(x, y) {
+      return Math.hypot(x-dotPos.x, y-dotPos.y) < dotRadius;
+    }
+
+    // --- Backgrounds ---
+    const BG_DEFAULT = 0, BG_WHITE = 1, BG_BLACK = 2, BG_PAPER = 3, BG_GRAPH = 4, BG_TRIANGLES = 5;
+    let bgMode = BG_DEFAULT;
+    const bgModes = 6;
+    bgToggleBtn.addEventListener('click', () => {
+      bgMode = (bgMode + 1) % bgModes;
+    });
+
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W;
+      canvas.height = H;
+      dotPos = {x: W/2, y: H/3};
+      dotRadius = getDotRadius();
+    }
+    window.addEventListener('resize', resize);
+
+    // --- Color Wheel ---
+    function renderWheel() {
+      wheelInner.innerHTML = '';
+      // Show only the last 13 unlocked colors (or all if less)
+      const maxDisplay = 13;
+      let displayColors = unlockedColors;
+      if (unlockedColors.length > maxDisplay) {
+        displayColors = unlockedColors.slice(-maxDisplay);
+      }
+      const n = displayColors.length;
+      const radius = wheelInner.offsetWidth/2 - 32;
+      const colorBorder = n > 10;
+      let hoverSwatch = null;
+      let lastHoveredIndex = -1;
+
+      // --- Render secret color in center if unlocked ---
+      let secretSwatch = null;
+      if (secretColorUnlocked) {
+        secretSwatch = document.createElement('div');
+        secretSwatch.className = 'color-swatch' + (selectedColor === SECRET_COLOR ? ' selected' : '');
+        secretSwatch.style.left = (wheelInner.offsetWidth/2 - 24) + 'px';
+        secretSwatch.style.top = (wheelInner.offsetHeight/2 - 24) + 'px';
+        secretSwatch.style.background = 'linear-gradient(270deg, #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000)';
+        secretSwatch.style.border = '3px solid #fff';
+        secretSwatch.style.animation = 'rainbow-flash 1.2s linear infinite';
+        secretSwatch.title = 'Secret Rainbow';
+        // Always allow click/tap selection for secret swatch
+        secretSwatch.addEventListener('mousedown', e => {
+          e.stopPropagation();
+          selectedColor = SECRET_COLOR;
+          renderWheel();
+        });
+        secretSwatch.addEventListener('touchstart', e => {
+          e.stopPropagation();
+          selectedColor = SECRET_COLOR;
+          renderWheel();
+        });
+        wheelInner.appendChild(secretSwatch);
+      }
+
+      displayColors.forEach((col, i) => {
+        // If secret color, skip (handled above)
+        if (secretColorUnlocked && col === SECRET_COLOR) return;
+        const angle = (2*Math.PI*i)/n - Math.PI/2;
+        const x = Math.cos(angle)*radius + wheelInner.offsetWidth/2 - 24;
+        const y = Math.sin(angle)*radius + wheelInner.offsetHeight/2 - 24;
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch' + (colorsEqual(col, selectedColor)?' selected':'');
+        swatch.style.background = rgbToStr(col);
+        swatch.style.left = x+'px';
+        swatch.style.top = y+'px';
+        if (colorBorder) {
+          swatch.style.border = '3px solid ' + rgbToStr(col);
+          swatch.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+        }
+        // Always allow click/tap selection for all swatches
+        swatch.addEventListener('mousedown', e => {
+          e.stopPropagation();
+          selectedColor = col;
+          renderWheel();
+        });
+        swatch.addEventListener('touchstart', e => {
+          e.stopPropagation();
+          selectedColor = col;
+          renderWheel();
+        });
+        wheelInner.appendChild(swatch);
+      });
+
+      if (colorBorder) {
+        // --- Scrubbing for mouse ---
+        wheelInner.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          let isScrubbing = true;
+          function updateHoverFromMouse(ev) {
+            const rect = wheelInner.getBoundingClientRect();
+            const mx = ev.clientX - rect.left;
+            const my = ev.clientY - rect.top;
+            let found = -1;
+            for (let j = 0; j < wheelInner.children.length; ++j) {
+              const s = wheelInner.children[j];
+              const sx = parseFloat(s.style.left) + 24;
+              const sy = parseFloat(s.style.top) + 24;
+              if (Math.hypot(mx - sx, my - sy) < 28) {
+                found = j;
+                break;
+              }
+            }
+            setHover(found);
+          }
+          function onMouseUp(ev) {
+            isScrubbing = false;
+            if (lastHoveredIndex >= 0) {
+              // If secret swatch is hovered, select it
+              if (secretColorUnlocked && wheelInner.children[lastHoveredIndex] === secretSwatch) {
+                selectedColor = SECRET_COLOR;
+              } else {
+                // Otherwise, select the color from displayColors
+                let idx = lastHoveredIndex;
+                if (secretColorUnlocked && secretSwatch) idx -= 1; // adjust index if secret swatch is present
+                selectedColor = displayColors[idx];
+              }
+              renderWheel();
+            } else {
+              setHover(-1);
+            }
+            document.removeEventListener('mousemove', updateHoverFromMouse);
+            document.removeEventListener('mouseup', onMouseUp);
+          }
+          document.addEventListener('mousemove', updateHoverFromMouse);
+          document.addEventListener('mouseup', onMouseUp);
+          updateHoverFromMouse(e);
+        });
+        // --- Scrubbing for touch ---
+        wheelInner.addEventListener('touchstart', function(e) {
+          e.preventDefault();
+          let isScrubbing = true;
+          function updateHoverFromTouch(ev) {
+            if (!ev.touches || ev.touches.length === 0) return;
+            const t = ev.touches[0];
+            const rect = wheelInner.getBoundingClientRect();
+            const tx = t.clientX - rect.left;
+            const ty = t.clientY - rect.top;
+            let found = -1;
+            for (let j = 0; j < wheelInner.children.length; ++j) {
+              const s = wheelInner.children[j];
+              const sx = parseFloat(s.style.left) + 24;
+              const sy = parseFloat(s.style.top) + 24;
+              if (Math.hypot(tx - sx, ty - sy) < 28) {
+                found = j;
+                break;
+              }
+            }
+            setHover(found);
+          }
+          function onTouchEnd(ev) {
+            isScrubbing = false;
+            if (lastHoveredIndex >= 0) {
+              if (secretColorUnlocked && wheelInner.children[lastHoveredIndex] === secretSwatch) {
+                selectedColor = SECRET_COLOR;
+              } else {
+                let idx = lastHoveredIndex;
+                if (secretColorUnlocked && secretSwatch) idx -= 1;
+                selectedColor = displayColors[idx];
+              }
+              renderWheel();
+            } else {
+              setHover(-1);
+            }
+            document.removeEventListener('touchmove', updateHoverFromTouch);
+            document.removeEventListener('touchend', onTouchEnd);
+          }
+          document.addEventListener('touchmove', updateHoverFromTouch, {passive: false});
+          document.addEventListener('touchend', onTouchEnd);
+          updateHoverFromTouch(e);
+        }, {passive: false});
+      }
+    }
+    colorWheelToggle.addEventListener('click', () => {
+      colorWheel.classList.toggle('open');
+      // renderScrubber(); // scrubber removed
+    });
+    colorWheelToggle.addEventListener('touchstart', e => {
+      e.preventDefault();
+      colorWheel.classList.toggle('open');
+      // renderScrubber(); // scrubber removed
+    });
+
+    // --- Close color wheel on outside tap/click ---
+    function isEventOutsideWheel(e) {
+      const wheel = document.getElementById('colorWheel');
+      const toggle = document.getElementById('colorWheelToggle');
+      const clearBtn = document.getElementById('clearBtn');
+      const target = e.target;
+      return !wheel.contains(target) && !toggle.contains(target) && target !== clearBtn;
+    }
+    ['mousedown', 'touchstart'].forEach(evt => {
+      document.addEventListener(evt, function(e) {
+        if (colorWheel.classList.contains('open') && isEventOutsideWheel(e)) {
+          colorWheel.classList.remove('open');
+        }
+      }, {passive: true});
+    });
+
+    // --- Drawing & Mixing ---
+    function onPointerDown(x, y) {
+      if (colorWheel.classList.contains('open')) return;
+      // --- Tap on dot: add color directly ---
+      if (isOnDot(x, y)) {
+        let already = discovered.some(c => colorsEqual(c, dotColor));
+        if (!already) {
+          discovered.push(dotColor);
+          unlockedColors.push(dotColor);
+          showUnlock(dotColor);
+          renderWheel();
+        }
+        // Always spawn a new dot on tap
+        // --- Mixing animation on tap ---
+        explosion = {x: dotPos.x, y: dotPos.y, color: dotColor, t: 0};
+        dotColor = allColors[Math.floor(Math.random()*allColors.length)];
+        dotPos = {x: 80+Math.random()*(W-160), y: 80+Math.random()*(H-300)};
+        dragging = false;
+        dragPos = null;
+        return;
+      }
+      // Start drawing if not on dot
+      if (Math.hypot(x-dotPos.x, y-dotPos.y) >= dotRadius+12) {
+        drawing = true;
+        currentStroke = {color: selectedColor, points: [[x, y]]};
+        return;
+      }
+      // Start dragging if on dot (for mixing)
+      if (isOnDot(x, y)) {
+        dragging = true;
+        dragPos = {x, y};
+      }
+    }
+    function onPointerMove(x, y) {
+      if (drawing && currentStroke) {
+        currentStroke.points.push([x, y]);
+        // Check for intersection with previous strokes
+        for (let s of strokes) {
+          if (colorsEqual(s.color, currentStroke.color)) continue;
+          for (let i = 1; i < s.points.length; ++i) {
+            for (let j = 1; j < currentStroke.points.length; ++j) {
+              if (segmentsIntersect(s.points[i-1], s.points[i], currentStroke.points[j-1], currentStroke.points[j])) {
+                const mixed = mixColors(s.color, currentStroke.color);
+                let already = discovered.some(c => colorsEqual(c, mixed));
+                // Find intersection point for explosion
+                const pt = getSegmentsIntersectionPoint(s.points[i-1], s.points[i], currentStroke.points[j-1], currentStroke.points[j]);
+                if (!already) {
+                  discovered.push(mixed);
+                  unlockedColors.push(mixed);
+                  showUnlock(mixed);
+                  renderWheel();
+                  if (pt) spawnColorExplosion(pt[0], pt[1], s.color, currentStroke.color);
+                } else if (pt && !explosions.some(e => Math.abs(e.x-pt[0])<5 && Math.abs(e.y-pt[1])<5)) {
+                  // If the color is already discovered, do not spawn explosion
+                  // (But if you want to allow explosion for already discovered, remove this else block)
+                }
+              }
+            }
+          }
+        }
+        return;
+      }
+      if (!dragging) return;
+      dragPos = {x, y};
+      // Check for crossing dot
+      if (Math.hypot(x-dotPos.x, y-dotPos.y) < dotRadius-8) {
+        const mixed = mixColors(selectedColor, dotColor);
+        let already = discovered.some(c => colorsEqual(c, mixed));
+        if (!already) {
+          discovered.push(mixed);
+          unlockedColors.push(mixed);
+          showUnlock(mixed);
+        }
+        // Explosion animation
+        explosion = {x: dotPos.x, y: dotPos.y, color: mixed, t: 0};
+        // New dot
+        dotColor = allColors[Math.floor(Math.random()*allColors.length)];
+        dotPos = {x: 80+Math.random()*(W-160), y: 80+Math.random()*(H-300)};
+        dragging = false;
+        dragPos = null;
+        renderWheel();
+        // Win check
+        if (discovered.length >= allColors.length) {
+          setTimeout(()=>alert('You unlocked every color!'), 500);
+        }
+      }
+    }
+    function onPointerUp() {
+      if (drawing && currentStroke) {
+        strokes.push(currentStroke);
+        currentStroke = null;
+        drawing = false;
+      }
+      dragging = false;
+      dragPos = null;
+    }
+    canvas.addEventListener('touchstart', e => {
+      if (e.touches.length>0) {
+        const t = e.touches[0];
+        onPointerDown(t.clientX, t.clientY);
+      }
+    });
+    canvas.addEventListener('touchmove', e => {
+      if (e.touches.length>0) {
+        const t = e.touches[0];
+        onPointerMove(t.clientX, t.clientY);
+      }
+    });
+    canvas.addEventListener('touchend', onPointerUp);
+    canvas.addEventListener('mousedown', e => {
+      onPointerDown(e.clientX, e.clientY);
+    });
+    canvas.addEventListener('mousemove', e => {
+      onPointerMove(e.clientX, e.clientY);
+    });
+    canvas.addEventListener('mouseup', onPointerUp);
+
+    // --- Segment Intersection Helper ---
+    function ccw(A, B, C) {
+      return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0]);
+    }
+    function segmentsIntersect(A,B,C,D) {
+      return (ccw(A,C,D) != ccw(B,C,D)) && (ccw(A,B,C) != ccw(A,B,D));
+    }
+    // Helper to get intersection point of two segments (returns [x, y] or null)
+    function getSegmentsIntersectionPoint(A, B, C, D) {
+      // Line AB as a1x + b1y = c1
+      const a1 = B[1] - A[1];
+      const b1 = A[0] - B[0];
+      const c1 = a1*A[0] + b1*A[1];
+      // Line CD as a2x + b2y = c2
+      const a2 = D[1] - C[1];
+      const b2 = C[0] - D[0];
+      const c2 = a2*C[0] + b2*C[1];
+      const det = a1*b2 - a2*b1;
+      if (det === 0) return null; // parallel
+      const x = (b2*c1 - b1*c2) / det;
+      const y = (a1*c2 - a2*c1) / det;
+      // Check if x,y is on both segments
+      function onSeg(P, Q, R) {
+        return Math.min(P[0], Q[0])-0.5 <= R[0] && R[0] <= Math.max(P[0], Q[0])+0.5 &&
+               Math.min(P[1], Q[1])-0.5 <= R[1] && R[1] <= Math.max(P[1], Q[1])+0.5;
+      }
+      if (onSeg(A,B,[x,y]) && onSeg(C,D,[x,y])) return [x,y];
+      return null;
+    }
+
+    // --- Unlock Animation ---
+    let unlockQueue = [];
+    let unlockActive = false;
+    function showUnlock(color) {
+      unlockQueue.push(color);
+      if (!unlockActive) processUnlockQueue();
+      // --- Achievement notification logic ---
+      const achievements = [5, 10, 15, 20, 25, 30];
+      const winCount = 33;
+      const unlockedCount = unlockedColors.length;
+      if (achievements.includes(unlockedCount)) {
+        // Queue a trophy notification
+        unlockQueue.push({
+          achievement: true,
+          count: unlockedCount
+        });
+      } else if (unlockedCount === winCount && !secretColorUnlocked) {
+        // --- Add secret color to wheel ---
+        secretColorUnlocked = true;
+        unlockedColors.push(SECRET_COLOR);
+        // Queue a win notification
+        unlockQueue.push({
+          win: true
+        });
+        // Queue secret color notification after win
+        unlockQueue.push({
+          secret: true
+        });
+      }
+    }
+    function processUnlockQueue() {
+      if (unlockQueue.length === 0) {
+        unlockActive = false;
+        return;
+      }
+      unlockActive = true;
+      const item = unlockQueue.shift();
+      // --- Achievement notification ---
+      if (item && item.achievement) {
+        unlockColor.innerHTML = '🏆';
+        unlockColor.style.background = 'none';
+        unlockColor.style.border = 'none';
+        unlockText.textContent = `Achievement: ${item.count} colors unlocked!`;
+        unlockMsg.classList.add('show');
+        unlockMsg.classList.remove('hide');
+        if (unlockTimeout) clearTimeout(unlockTimeout);
+        unlockTimeout = setTimeout(()=>{
+          unlockMsg.classList.remove('show');
+          unlockMsg.classList.add('hide');
+          setTimeout(processUnlockQueue, 350);
+        }, 1400);
+        return;
+      }
+      // --- Win notification ---
+      if (item && item.win) {
+        const emojis = ['🦀','💩','🏀'];
+        const emoji = emojis[Math.floor(Math.random()*emojis.length)];
+        unlockColor.innerHTML = emoji;
+        unlockColor.style.background = 'none';
+        unlockColor.style.border = 'none';
+        unlockText.textContent = `You win! All 33 colors unlocked!`;
+        unlockMsg.classList.add('show');
+        unlockMsg.classList.remove('hide');
+        if (unlockTimeout) clearTimeout(unlockTimeout);
+        unlockTimeout = setTimeout(()=>{
+          unlockMsg.classList.remove('show');
+          unlockMsg.classList.add('hide');
+          spawnDancingEmojis(); // <-- trigger emoji dance after win
+          setTimeout(processUnlockQueue, 350);
+        }, 2000);
+        return;
+      }
+      // --- Secret color notification ---
+      if (item && item.secret) {
+        unlockColor.innerHTML = '';
+        unlockColor.style.background = 'linear-gradient(270deg, #ff0000, #ff9900, #ffee00, #33ff00, #00ffee, #0066ff, #cc00ff, #ff0000)';
+        unlockColor.style.border = '2.5px solid #fff';
+        unlockColor.style.animation = 'rainbow-flash 1.2s linear infinite';
+        unlockText.textContent = 'Secret color unlocked!';
+        unlockMsg.classList.add('show');
+        unlockMsg.classList.remove('hide');
+        if (unlockTimeout) clearTimeout(unlockTimeout);
+        unlockTimeout = setTimeout(()=>{
+          unlockMsg.classList.remove('show');
+          unlockMsg.classList.add('hide');
+          unlockColor.style.animation = '';
+          setTimeout(processUnlockQueue, 350);
+        }, 1800);
+        return;
+      }
+      // --- Normal color unlock ---
+      unlockColor.innerHTML = '';
+      unlockColor.style.background = rgbToStr(item);
+      unlockColor.style.border = '2.5px solid #e5e5e5';
+      unlockColor.style.animation = '';
+      unlockText.textContent = 'New color unlocked!';
+      unlockMsg.classList.add('show');
+      unlockMsg.classList.remove('hide');
+      if (unlockTimeout) clearTimeout(unlockTimeout);
+      unlockTimeout = setTimeout(()=>{
+        unlockMsg.classList.remove('show');
+        unlockMsg.classList.add('hide');
+        setTimeout(processUnlockQueue, 350); // Wait for slide up before next
+      }, 1200);
+    }
+
+    /* Add rainbow animation to style */
+    const style = document.createElement('style');
+    style.innerHTML = `
+    @keyframes rainbow-flash {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }`;
+    document.head.appendChild(style);
+
+    // --- Explosion Animation ---
+    function drawExplosion(e) {
+      if (!e) return;
+      for(let i=0;i<18;i++) {
+        const angle = (2*Math.PI*i)/18;
+        const r = 40 + 30*Math.sin(e.t*2+i);
+        ctx.beginPath();
+        ctx.arc(e.x+Math.cos(angle)*r, e.y+Math.sin(angle)*r, 16-e.t*8, 0, 2*Math.PI);
+        ctx.fillStyle = rgbToStr(e.color);
+        ctx.globalAlpha = 1-e.t;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      e.t += 0.04;
+      if (e.t > 1) explosion = null;
+    }
+
+    // --- Particle Explosion System ---
+    let explosions = [];
+
+    function spawnColorExplosion(x, y, colorA, colorB) {
+      // Limit to 7 simultaneous explosions
+      if (explosions.length >= 7 * 40) return; // 40 is a rough maxLife, so 7 explosions max
+      const N = 32 + Math.floor(Math.random()*16); // number of particles
+      for (let i = 0; i < N; ++i) {
+        const angle = Math.random() * 2 * Math.PI;
+        const speed = 6 + Math.random() * 6;
+        const vx = Math.cos(angle) * speed;
+        const vy = Math.sin(angle) * speed;
+        // Color: random between colorA, colorB, and their mix
+        let t = Math.random();
+        let c = [
+          Math.round(colorA[0]*(1-t) + colorB[0]*t),
+          Math.round(colorA[1]*(1-t) + colorB[1]*t),
+          Math.round(colorA[2]*(1-t) + colorB[2]*t)
+        ];
+        explosions.push({
+          x, y,
+          vx, vy,
+          color: c,
+          alpha: 1,
+          radius: 8 + Math.random()*8,
+          life: 0,
+          maxLife: 60 + Math.random()*40 // frames
+        });
+      }
+    }
+
+    function updateAndDrawExplosions() {
+      for (let p of explosions) {
+        // Update
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.18; // gravity
+        p.life++;
+        // Bounce off bounds
+        if (p.x < p.radius) { p.x = p.radius; p.vx *= -0.7; }
+        if (p.x > W - p.radius) { p.x = W - p.radius; p.vx *= -0.7; }
+        if (p.y < p.radius) { p.y = p.radius; p.vy *= -0.7; }
+        // Fade out or fall off
+        p.alpha = Math.max(0, 1 - p.life/p.maxLife);
+      }
+      // Remove dead particles
+      explosions = explosions.filter(p => p.alpha > 0.05 && p.y < H + 100);
+      // Draw
+      for (let p of explosions) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, 2*Math.PI);
+        ctx.fillStyle = rgbToStr(p.color);
+        ctx.globalAlpha = p.alpha;
+        ctx.shadowColor = rgbToStr(p.color);
+        ctx.shadowBlur = 16;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // --- Main Render Loop ---
+    function draw() {
+      // Draw background
+      switch(bgMode) {
+        case BG_DEFAULT:
+          ctx.clearRect(0,0,W,H);
+          ctx.fillStyle = '#181818';
+          ctx.fillRect(0,0,W,H);
+          break;
+        case BG_WHITE:
+          ctx.clearRect(0,0,W,H);
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0,0,W,H);
+          break;
+        case BG_BLACK:
+          ctx.clearRect(0,0,W,H);
+          ctx.fillStyle = '#000';
+          ctx.fillRect(0,0,W,H);
+          break;
+        case BG_PAPER:
+          ctx.clearRect(0,0,W,H);
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0,0,W,H);
+          ctx.save();
+          ctx.fillStyle = '#ccc';
+          for(let y=20;y<H;y+=32) for(let x=20;x<W;x+=32) {
+            ctx.beginPath();
+            ctx.arc(x, y, 2, 0, 2*Math.PI);
+            ctx.fill();
+          }
+          ctx.restore();
+          break;
+        case BG_GRAPH:
+          ctx.clearRect(0,0,W,H);
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0,0,W,H);
+          ctx.save();
+          ctx.strokeStyle = '#e0e0e0';
+          ctx.lineWidth = 1;
+          for(let y=0;y<H;y+=32) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(W, y);
+            ctx.stroke();
+          }
+          for(let x=0;x<W;x+=32) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, H);
+            ctx.stroke();
+          }
+          ctx.restore();
+          break;
+        case BG_TRIANGLES:
+          ctx.clearRect(0,0,W,H);
+          ctx.fillStyle = '#000';
+          ctx.fillRect(0,0,W,H);
+          ctx.save();
+          ctx.strokeStyle = '#ffd700'; // golden color
+          ctx.lineWidth = 1;
+          let size = 32;
+          for(let y=0;y<H+size;y+=size) {
+            for(let x=0;x<W+size;x+=size) {
+              ctx.beginPath();
+              if (((x/size)+(y/size))%2===0) {
+                ctx.moveTo(x, y);
+                ctx.lineTo(x+size, y);
+                ctx.lineTo(x+size/2, y+size);
+                ctx.closePath();
+              } else {
+                ctx.moveTo(x+size/2, y);
+                ctx.lineTo(x, y+size);
+                ctx.lineTo(x+size, y+size);
+                ctx.closePath();
+              }
+              ctx.stroke();
+            }
+          }
+          ctx.restore();
+          break;
+      }
+      // Draw previous strokes
+      for (let s of strokes) {
+        ctx.beginPath();
+        for (let i = 0; i < s.points.length; ++i) {
+          if (i === 0) ctx.moveTo(s.points[i][0], s.points[i][1]);
+          else ctx.lineTo(s.points[i][0], s.points[i][1]);
+        }
+        // --- Rainbow stroke for secret color ---
+        if (s.color === SECRET_COLOR) {
+          drawRainbowStroke(s.points, 18, 0.8);
+        } else {
+          ctx.strokeStyle = rgbToStr(s.color);
+          ctx.lineWidth = 18;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.globalAlpha = 0.8;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+      // Draw current stroke
+      if (currentStroke) {
+        ctx.beginPath();
+        for (let i = 0; i < currentStroke.points.length; ++i) {
+          if (i === 0) ctx.moveTo(currentStroke.points[i][0], currentStroke.points[i][1]);
+          else ctx.lineTo(currentStroke.points[i][0], currentStroke.points[i][1]);
+        }
+        if (currentStroke.color === SECRET_COLOR) {
+          drawRainbowStroke(currentStroke.points, 18, 0.8);
+        } else {
+          ctx.strokeStyle = rgbToStr(currentStroke.color);
+          ctx.lineWidth = 18;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.globalAlpha = 0.8;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+      // Draw dot
+      ctx.beginPath();
+      ctx.arc(dotPos.x, dotPos.y, dotRadius, 0, 2*Math.PI);
+      ctx.fillStyle = rgbToStr(dotColor);
+      ctx.shadowColor = rgbToStr(dotColor);
+      ctx.shadowBlur = 32;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // Draw drag
+      if (dragging && dragPos) {
+        ctx.beginPath();
+        ctx.moveTo(dotPos.x, dotPos.y);
+        ctx.lineTo(dragPos.x, dragPos.y);
+        ctx.strokeStyle = rgbToStr(selectedColor);
+        ctx.lineWidth = 18;
+        ctx.globalAlpha = 0.7;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(dragPos.x, dragPos.y, Math.max(dotRadius-16, 16), 0, 2*Math.PI);
+        ctx.fillStyle = rgbToStr(selectedColor);
+        ctx.globalAlpha = 0.8;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      // Draw explosion
+      drawExplosion(explosion); // legacy single explosion
+      updateAndDrawExplosions(); // new particle system
+      requestAnimationFrame(draw);
+    }
+
+    // --- Start ---
+    renderWheel();
+    if (!window._drawLoopStarted) {
+      window._drawLoopStarted = true;
+      draw();
+    }
+
+    // --- Clear Button Animation ---
+    colorWheel.addEventListener('transitionend', () => {
+      if (colorWheel.classList.contains('open')) {
+        clearBtn.classList.add('pop');
+        setTimeout(()=>clearBtn.classList.remove('pop'), 400);
+      }
+    });
+    clearBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      strokes = [];
+      currentStroke = null;
+      // No need to call draw(); the animation loop will update automatically
+      clearBtn.animate([
+        { transform: 'scale(1) rotate(0deg)' },
+        { transform: 'scale(1.1) rotate(-10deg)' },
+        { transform: 'scale(1) rotate(8deg)' },
+        { transform: 'scale(1) rotate(-6deg)' },
+        { transform: 'scale(1) rotate(0deg)' }
+      ], { duration: 400, easing: 'cubic-bezier(.68,-0.55,.27,1.55)' });
+    });
+    clearBtn.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+    });
+    // --- Rainbow stroke drawing helper ---
+    function drawRainbowStroke(points, width, alpha) {
+      if (points.length < 2) return;
+      for (let i = 1; i < points.length; ++i) {
+        const t = (performance.now()/400 + i/6) % 1;
+        ctx.beginPath();
+        ctx.moveTo(points[i-1][0], points[i-1][1]);
+        ctx.lineTo(points[i][0], points[i][1]);
+        ctx.strokeStyle = `hsl(${Math.floor(360*t)}, 98%, 55%)`;
+        ctx.lineWidth = width;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = alpha;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // --- Dancing Emoji Effect ---
+    function spawnDancingEmojis() {
+      const emojiContainer = document.createElement('div');
+      emojiContainer.style.position = 'fixed';
+      emojiContainer.style.left = '0';
+      emojiContainer.style.top = '0';
+      emojiContainer.style.width = '100vw';
+      emojiContainer.style.height = '100vh';
+      emojiContainer.style.pointerEvents = 'none';
+      emojiContainer.style.zIndex = '1000';
+      document.body.appendChild(emojiContainer);
+      const EMOJIS = ['🦀','💩'];
+      const N = 22;
+      const emojiElems = [];
+      for (let i = 0; i < N; ++i) {
+        const e = document.createElement('div');
+        e.textContent = EMOJIS[Math.floor(Math.random()*EMOJIS.length)];
+        e.style.position = 'absolute';
+        e.style.fontSize = (48 + Math.random()*32) + 'px';
+        e.style.left = Math.random()*90 + 'vw';
+        e.style.top = (10 + Math.random()*70) + 'vh';
+        e.style.transition = 'transform 0.7s cubic-bezier(.68,-0.55,.27,1.55), opacity 1.2s cubic-bezier(.68,-0.55,.27,1.55)';
+        emojiContainer.appendChild(e);
+        emojiElems.push({
+          el: e,
+          baseLeft: parseFloat(e.style.left),
+          baseTop: parseFloat(e.style.top),
+          phase: Math.random()*Math.PI*2,
+          speed: 0.5+Math.random()*1.2,
+          flying: false,
+          flyAngle: Math.random()*2*Math.PI,
+          flyDist: 120 + Math.random()*180,
+          flyRot: (Math.random()-0.5)*720
+        });
+      }
+      let running = true;
+      let flyStarted = false;
+      function animate() {
+        if (!running) return;
+        const t = performance.now()/400;
+        for (let obj of emojiElems) {
+          if (!obj.flying) {
+            // Dance: wiggle up/down and rotate
+            const y = obj.baseTop + Math.sin(t*obj.speed + obj.phase)*3;
+            const rot = Math.sin(t*obj.speed*1.5 + obj.phase)*24;
+            obj.el.style.transform = `translateY(${y-obj.baseTop}vh) rotate(${rot}deg)`;
+          } else {
+            // Flying away: animate to target position and fade out
+            obj.el.style.transform = `translate(${Math.cos(obj.flyAngle)*obj.flyDist}vw, ${Math.sin(obj.flyAngle)*obj.flyDist}vh) rotate(${obj.flyRot}deg)`;
+            obj.el.style.opacity = '0';
+          }
+        }
+        requestAnimationFrame(animate);
+      }
+      animate();
+      // After 8 seconds, trigger fly away
+      setTimeout(() => {
+        flyStarted = true;
+        for (let obj of emojiElems) {
+          obj.flying = true;
+        }
+      }, 8000);
+      // Remove after 15 seconds
+      setTimeout(() => {
+        running = false;
+        emojiContainer.remove();
+      }, 15000);
+    }
+  </script>
+</body>
+</html>
