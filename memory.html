@@ -92,6 +92,7 @@
             animation: bob 1s infinite alternate, floatAway 3s 3s forwards;
         }
 
+
         @keyframes bob {
             0% { transform: translate(-50%, -50%) translateY(-10px); }
             100% { transform: translate(-50%, -50%) translateY(10px); }
@@ -201,6 +202,33 @@
             border-radius: 5px;
             border: 1px solid #ccc;
         }
+
+
+
+
+           /* Color Wheel Styles */
+#colorWheelContainer {
+    margin: 24px auto 0 auto;
+    display: flex;
+    justify-content: center;
+}
+#colorWheel {
+    display: flex;
+    gap: 16px;
+}
+.color-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+.color-swatch.selected {
+    border: 4px solid #ffd700;
+    transform: scale(1.15);
+}
     </style>
 </head>
 <body>
@@ -221,7 +249,10 @@
     </select>
     <button id="startButton" onclick="startGame()" disabled hidden>Start Game</button>
     <div id="gameBoard"></div>
-    <div id="congratsCard"></div>
+    <div id="congratsCard"></div>        
+    <div id="colorWheelContainer" style="margin: 24px auto; display: flex; justify-content: center;">
+      <div id="colorWheel" style="display: flex; gap: 16px;"></div>
+    </div>
     <button id="settingsButton" onclick="toggleSettingsPopup()">Settings</button>
     <div id="settingsPopup">
         <h2>Settings</h2>
@@ -513,6 +544,80 @@ function flipCard(card) {
     document.getElementById('numMatches').value = numMatches;
     startGame();
 });
+
+
+// ...existing code...
+
+// Utility: Generate random hex color
+function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
+// Utility: Get contrast color (black/white)
+function getContrastColor(hexColor) {
+    // Remove # if present
+    hexColor = hexColor.replace('#', '');
+    const r = parseInt(hexColor.substr(0, 2), 16);
+    const g = parseInt(hexColor.substr(2, 2), 16);
+    const b = parseInt(hexColor.substr(4, 2), 16);
+    const yiq = ((r*299)+(g*587)+(b*114))/1000;
+    return (yiq >= 128) ? 'black' : 'white';
+}
+
+// Render 6 random color swatches (enough to fit under the width of the cards on)
+function renderColorWheel() {
+    const wheel = document.getElementById('colorWheel');
+    wheel.innerHTML = '';
+    const colors = [];
+    for (let i = 0; i < 6; i++) {
+        let color;
+        do {
+            color = getRandomColor();
+        } while (colors.includes(color));
+        colors.push(color);
+    }
+    colors.forEach(color => {
+        const swatch = document.createElement('div');
+        swatch.style.width = '40px';
+        swatch.style.height = '40px';
+        swatch.style.borderRadius = '50%';
+        swatch.style.background = color;
+        swatch.style.border = '3px solid #fff';
+        swatch.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
+        swatch.style.cursor = 'pointer';
+        swatch.title = color;
+        swatch.addEventListener('click', () => {
+            // Set background and argyle
+            document.body.style.backgroundColor = color;
+            document.body.classList.add('argyle-pattern');
+            // Set cards to opposite color
+            const cardColor = getRandomColor()
+            document.querySelectorAll('.card').forEach(card => {
+                card.style.backgroundColor = cardColor;
+                card.style.color = cardColor;
+            });
+            localStorage.setItem('cardBackColor', cardColor);
+            localStorage.setItem('bgColor', color);
+            localStorage.setItem('patternToggle', patternToggle);
+            localStorage.setItem('colorBlindToggle', colorBlindToggle);
+            renderColorWheel(); // Re-render to update swatches
+        });
+        wheel.appendChild(swatch);
+    });
+}
+
+// Re-render color wheel every time popup is opened or page loads
+document.addEventListener('DOMContentLoaded', renderColorWheel);
+
+// Optionally, re-render when settings popup is closed/opened
+document.getElementById('settingsButton').addEventListener('click', renderColorWheel);
+
+// ...existing code...
 
 
     </script>
