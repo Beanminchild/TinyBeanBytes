@@ -288,6 +288,7 @@
 
     // --- Drawing State ---
     let drawing = false;
+    let currentStrokes = {};
     let currentStroke = null;
     let strokes = [];
 
@@ -307,7 +308,7 @@
 
     // --- Backgrounds ---
     const BG_DEFAULT = 0, BG_WHITE = 1, BG_BLACK = 2, BG_PAPER = 3, BG_GRAPH = 4, BG_TRIANGLES = 5;
-    let bgMode = BG_DEFAULT;
+    let bgMode = BG_PAPER; // Start with paper background
     const bgModes = 6;
     bgToggleBtn.addEventListener('click', () => {
       bgMode = (bgMode + 1) % bgModes;
@@ -603,18 +604,86 @@
       dragging = false;
       dragPos = null;
     }
+      
     canvas.addEventListener('touchstart', e => {
-      if (e.touches.length>0) {
-        const t = e.touches[0];
-        onPointerDown(t.clientX, t.clientY);
+      for (let i = 0; i < e.changedTouches.length; ++i) {
+        const t = e.changedTouches[i];
+        // Only start drawing if not on dot
+        if (Math.hypot(t.clientX-dotPos.x, t.clientY-dotPos.y) >= dotRadius+12) {
+          currentStrokes[t.identifier] = {color: selectedColor, points: [[t.clientX, t.clientY]]};
+        }
       }
     });
+    
     canvas.addEventListener('touchmove', e => {
-      if (e.touches.length>0) {
-        const t = e.touches[0];
-        onPointerMove(t.clientX, t.clientY);
+      for (let i = 0; i < e.changedTouches.length; ++i) {
+        const t = e.changedTouches[i];
+        const stroke = currentStrokes[t.identifier];
+        if (stroke) {
+          stroke.points.push([t.clientX, t.clientY]);
+          // (Optional: add intersection/mixing logic here if you want it per stroke)
+        }
       }
     });
+    
+    canvas.addEventListener('touchend', e => {
+      for (let i = 0; i < e.changedTouches.length; ++i) {
+        const t = e.changedTouches[i];
+        const stroke = currentStrokes[t.identifier];
+        if (stroke) {
+          strokes.push(stroke);
+          delete currentStrokes[t.identifier];
+        }
+      }
+    });
+    // ...existing code...
+
+
+// ...existing code...
+
+// --- Mouse Drawing for Multi-Stroke Support ---
+let mouseDown = false;
+
+canvas.addEventListener('mousedown', e => {
+  // Only start drawing if not on dot
+  if (Math.hypot(e.clientX-dotPos.x, e.clientY-dotPos.y) >= dotRadius+12) {
+    mouseDown = true;
+    currentStrokes['mouse'] = {color: selectedColor, points: [[e.clientX, e.clientY]]};
+  } else {
+    onPointerDown(e.clientX, e.clientY); // for dot tap/drag
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (mouseDown && currentStrokes['mouse']) {
+    currentStrokes['mouse'].points.push([e.clientX, e.clientY]);
+    // (Optional: add intersection/mixing logic here if you want it per stroke)
+  } else {
+    onPointerMove(e.clientX, e.clientY); // for drag logic
+  }
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (mouseDown && currentStrokes['mouse']) {
+    strokes.push(currentStrokes['mouse']);
+    delete currentStrokes['mouse'];
+    mouseDown = false;
+  }
+  onPointerUp();
+});
+
+// Optional: handle mouse leaving the canvas
+canvas.addEventListener('mouseleave', e => {
+  if (mouseDown && currentStrokes['mouse']) {
+    strokes.push(currentStrokes['mouse']);
+    delete currentStrokes['mouse'];
+    mouseDown = false;
+  }
+});
+
+// ...existing code...
+
+    
     canvas.addEventListener('touchend', onPointerUp);
     canvas.addEventListener('mousedown', e => {
       onPointerDown(e.clientX, e.clientY);
@@ -948,17 +1017,19 @@
           ctx.globalAlpha = 1;
         }
       }
-      // Draw current stroke
-      if (currentStroke) {
+            // ...existing code...
+      // Draw current strokes (multi-touch)
+      for (let key in currentStrokes) {
+        const s = currentStrokes[key];
         ctx.beginPath();
-        for (let i = 0; i < currentStroke.points.length; ++i) {
-          if (i === 0) ctx.moveTo(currentStroke.points[i][0], currentStroke.points[i][1]);
-          else ctx.lineTo(currentStroke.points[i][0], currentStroke.points[i][1]);
+        for (let i = 0; i < s.points.length; ++i) {
+          if (i === 0) ctx.moveTo(s.points[i][0], s.points[i][1]);
+          else ctx.lineTo(s.points[i][0], s.points[i][1]);
         }
-        if (currentStroke.color === SECRET_COLOR) {
-          drawRainbowStroke(currentStroke.points, 18, 0.8);
+        if (s.color === SECRET_COLOR) {
+          drawRainbowStroke(s.points, 18, 0.8);
         } else {
-          ctx.strokeStyle = rgbToStr(currentStroke.color);
+          ctx.strokeStyle = rgbToStr(s.color);
           ctx.lineWidth = 18;
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
@@ -967,6 +1038,7 @@
           ctx.globalAlpha = 1;
         }
       }
+      // ...existing code...
       // Draw dot
       ctx.beginPath();
       ctx.arc(dotPos.x, dotPos.y, dotRadius, 0, 2*Math.PI);
