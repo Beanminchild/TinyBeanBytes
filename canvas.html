@@ -631,6 +631,29 @@
         const t = e.changedTouches[i];
         const stroke = currentStrokes[t.identifier];
         if (stroke) {
+          // --- Color mixing and explosion logic for multi-touch ---
+          for (let s of strokes) {
+            if (colorsEqual(s.color, stroke.color)) continue;
+            for (let i = 1; i < s.points.length; ++i) {
+              for (let j = 1; j < stroke.points.length; ++j) {
+                if (segmentsIntersect(s.points[i-1], s.points[i], stroke.points[j-1], stroke.points[j])) {
+                  const mixed = mixColors(s.color, stroke.color);
+                  let already = discovered.some(c => colorsEqual(c, mixed));
+                  const pt = getSegmentsIntersectionPoint(s.points[i-1], s.points[i], stroke.points[j-1], stroke.points[j]);
+                  if (!already) {
+                    discovered.push(mixed);
+                    unlockedColors.push(mixed);
+                    showUnlock(mixed);
+                    renderWheel();
+                    if (pt) spawnColorExplosion(pt[0], pt[1], s.color, stroke.color);
+                  } else if (pt && !explosions.some(e => Math.abs(e.x-pt[0])<5 && Math.abs(e.y-pt[1])<5)) {
+                    // If the color is already discovered, do not spawn explosion
+                    // (But if you want to allow explosion for already discovered, remove this else block)
+                  }
+                }
+              }
+            }
+          }
           strokes.push(stroke);
           delete currentStrokes[t.identifier];
         }
@@ -639,51 +662,96 @@
     // ...existing code...
 
 
-// ...existing code...
+    // --- Mouse Drawing for Multi-Stroke Support ---
+    let mouseDown = false;
 
-// --- Mouse Drawing for Multi-Stroke Support ---
-let mouseDown = false;
+    canvas.addEventListener('mousedown', e => {
+      // Only start drawing if not on dot
+      if (Math.hypot(e.clientX-dotPos.x, e.clientY-dotPos.y) >= dotRadius+12) {
+        mouseDown = true;
+        currentStrokes['mouse'] = {color: selectedColor, points: [[e.clientX, e.clientY]]};
+      } else {
+        onPointerDown(e.clientX, e.clientY); // for dot tap/drag
+      }
+    });
 
-canvas.addEventListener('mousedown', e => {
-  // Only start drawing if not on dot
-  if (Math.hypot(e.clientX-dotPos.x, e.clientY-dotPos.y) >= dotRadius+12) {
-    mouseDown = true;
-    currentStrokes['mouse'] = {color: selectedColor, points: [[e.clientX, e.clientY]]};
-  } else {
-    onPointerDown(e.clientX, e.clientY); // for dot tap/drag
-  }
-});
+    canvas.addEventListener('mousemove', e => {
+      if (mouseDown && currentStrokes['mouse']) {
+        currentStrokes['mouse'].points.push([e.clientX, e.clientY]);
+        // (Optional: add intersection/mixing logic here if you want it per stroke)
+      } else {
+        onPointerMove(e.clientX, e.clientY); // for drag logic
+      }
+    });
 
-canvas.addEventListener('mousemove', e => {
-  if (mouseDown && currentStrokes['mouse']) {
-    currentStrokes['mouse'].points.push([e.clientX, e.clientY]);
-    // (Optional: add intersection/mixing logic here if you want it per stroke)
-  } else {
-    onPointerMove(e.clientX, e.clientY); // for drag logic
-  }
-});
+    canvas.addEventListener('mouseup', e => {
+      if (mouseDown && currentStrokes['mouse']) {
+        // --- Color mixing and explosion logic for mouse multi-stroke ---
+        const stroke = currentStrokes['mouse'];
+        for (let s of strokes) {
+          if (colorsEqual(s.color, stroke.color)) continue;
+          for (let i = 1; i < s.points.length; ++i) {
+            for (let j = 1; j < stroke.points.length; ++j) {
+              if (segmentsIntersect(s.points[i-1], s.points[i], stroke.points[j-1], stroke.points[j])) {
+                const mixed = mixColors(s.color, stroke.color);
+                let already = discovered.some(c => colorsEqual(c, mixed));
+                const pt = getSegmentsIntersectionPoint(s.points[i-1], s.points[i], stroke.points[j-1], stroke.points[j]);
+                if (!already) {
+                  discovered.push(mixed);
+                  unlockedColors.push(mixed);
+                  showUnlock(mixed);
+                  renderWheel();
+                  if (pt) spawnColorExplosion(pt[0], pt[1], s.color, stroke.color);
+                } else if (pt && !explosions.some(e => Math.abs(e.x-pt[0])<5 && Math.abs(e.y-pt[1])<5)) {
+                  // If the color is already discovered, do not spawn explosion
+                  // (But if you want to allow explosion for already discovered, remove this else block)
+                }
+              }
+            }
+          }
+        }
+        strokes.push(stroke);
+        delete currentStrokes['mouse'];
+        mouseDown = false;
+      }
+      onPointerUp();
+    });
 
-canvas.addEventListener('mouseup', e => {
-  if (mouseDown && currentStrokes['mouse']) {
-    strokes.push(currentStrokes['mouse']);
-    delete currentStrokes['mouse'];
-    mouseDown = false;
-  }
-  onPointerUp();
-});
+    // Optional: handle mouse leaving the canvas
+    canvas.addEventListener('mouseleave', e => {
+      if (mouseDown && currentStrokes['mouse']) {
+        // --- Color mixing and explosion logic for mouse multi-stroke on leave ---
+        const stroke = currentStrokes['mouse'];
+        for (let s of strokes) {
+          if (colorsEqual(s.color, stroke.color)) continue;
+          for (let i = 1; i < s.points.length; ++i) {
+            for (let j = 1; j < stroke.points.length; ++j) {
+              if (segmentsIntersect(s.points[i-1], s.points[i], stroke.points[j-1], stroke.points[j])) {
+                const mixed = mixColors(s.color, stroke.color);
+                let already = discovered.some(c => colorsEqual(c, mixed));
+                const pt = getSegmentsIntersectionPoint(s.points[i-1], s.points[i], stroke.points[j-1], stroke.points[j]);
+                if (!already) {
+                  discovered.push(mixed);
+                  unlockedColors.push(mixed);
+                  showUnlock(mixed);
+                  renderWheel();
+                  if (pt) spawnColorExplosion(pt[0], pt[1], s.color, stroke.color);
+                } else if (pt && !explosions.some(e => Math.abs(e.x-pt[0])<5 && Math.abs(e.y-pt[1])<5)) {
+                  // If the color is already discovered, do not spawn explosion
+                  // (But if you want to allow explosion for already discovered, remove this else block)
+                }
+              }
+            }
+          }
+        }
+        strokes.push(stroke);
+        delete currentStrokes['mouse'];
+        mouseDown = false;
+      }
+    });
+    // ...existing code...
 
-// Optional: handle mouse leaving the canvas
-canvas.addEventListener('mouseleave', e => {
-  if (mouseDown && currentStrokes['mouse']) {
-    strokes.push(currentStrokes['mouse']);
-    delete currentStrokes['mouse'];
-    mouseDown = false;
-  }
-});
 
-// ...existing code...
-
-    
     canvas.addEventListener('touchend', onPointerUp);
     canvas.addEventListener('mousedown', e => {
       onPointerDown(e.clientX, e.clientY);
@@ -1017,7 +1085,6 @@ canvas.addEventListener('mouseleave', e => {
           ctx.globalAlpha = 1;
         }
       }
-            // ...existing code...
       // Draw current strokes (multi-touch)
       for (let key in currentStrokes) {
         const s = currentStrokes[key];
@@ -1038,7 +1105,6 @@ canvas.addEventListener('mouseleave', e => {
           ctx.globalAlpha = 1;
         }
       }
-      // ...existing code...
       // Draw dot
       ctx.beginPath();
       ctx.arc(dotPos.x, dotPos.y, dotRadius, 0, 2*Math.PI);

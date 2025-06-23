@@ -252,6 +252,13 @@
 function reattachTouchListeners() {
     const cards = document.querySelectorAll('.card');
     cards.forEach(card => {
+        // Remove previous listeners by cloning the node
+        const newCard = card.cloneNode(true);
+        card.parentNode.replaceChild(newCard, card);
+    });
+    // Now re-select the new cards and add listeners
+    const newCards = document.querySelectorAll('.card');
+    newCards.forEach(card => {
         card.addEventListener('touchstart', (event) => {
             event.preventDefault();
             flipCard(card);
@@ -339,6 +346,7 @@ function flipCard(card) {
         cards.forEach(card => {
             if (card.querySelector('img')) {
                 card.classList.remove('hidden');
+                card.classList.remove('flipped'); // Ensure not flipped
             }
         });
 
@@ -360,6 +368,7 @@ function flipCard(card) {
                 card.classList.remove('flipped');
                 card.classList.add('hidden');
             });
+            reattachTouchListeners(); // Ensure all cards are interactive after hiding
             showStartMessage();
         }, 2000);
     }
@@ -481,6 +490,13 @@ function flipCard(card) {
   function reattachTouchListeners() {
     const cards = document.querySelectorAll('.card');
     cards.forEach(card => {
+        // Remove previous listeners by cloning the node
+        const newCard = card.cloneNode(true);
+        card.parentNode.replaceChild(newCard, card);
+    });
+    // Now re-select the new cards and add listeners
+    const newCards = document.querySelectorAll('.card');
+    newCards.forEach(card => {
         card.addEventListener('touchstart', (event) => {
             event.preventDefault();
             flipCard(card);
@@ -623,26 +639,7 @@ function renderColorWheel() {
         swatch.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
         swatch.style.cursor = 'pointer';
         swatch.title = color;
-        
-        swatch.addEventListener('touchstart', () => {
-            // Set background and argyle
-            document.body.style.backgroundColor = color;
-            document.body.classList.add('argyle-pattern');
-            // Set cards to opposite color
-            const cardColor = getRandomColor()
-            document.querySelectorAll('.card').forEach(card => {
-                card.style.backgroundColor = cardColor;
-                card.style.color = cardColor;
-            });
-            localStorage.setItem('cardBackColor', cardColor);
-            localStorage.setItem('bgColor', color);
-            localStorage.setItem('patternToggle', patternToggle);
-            localStorage.setItem('colorBlindToggle', colorBlindToggle);
-            renderColorWheel(); // Re-render to update swatches
-        });
-        wheel.appendChild(swatch);
-        // Added distinct click and touch listeners for mobile and desktop
-    swatch.addEventListener('click', () => {
+        swatch.addEventListener('click', () => {
             // Set background and argyle
             document.body.style.backgroundColor = color;
             document.body.classList.add('argyle-pattern');
@@ -666,8 +663,7 @@ function renderColorWheel() {
 document.addEventListener('DOMContentLoaded', renderColorWheel);
 
 // Optionally, re-render when settings popup is closed/opened
-document.getElementById('settingsButton').addEventListener('touchstart', renderColorWheel);
-document.getElementById('settingsButton').addEventListener('mousedown', renderColorWheel);
+document.getElementById('settingsButton').addEventListener('click', renderColorWheel);
 
 // ...existing code...
 
