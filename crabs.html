@@ -252,6 +252,13 @@
 function reattachTouchListeners() {
     const cards = document.querySelectorAll('.card');
     cards.forEach(card => {
+        // Remove previous listeners by cloning the node
+        const newCard = card.cloneNode(true);
+        card.parentNode.replaceChild(newCard, card);
+    });
+    // Now re-select the new cards and add listeners
+    const newCards = document.querySelectorAll('.card');
+    newCards.forEach(card => {
         card.addEventListener('touchstart', (event) => {
             event.preventDefault();
             flipCard(card);
@@ -339,6 +346,7 @@ function flipCard(card) {
         cards.forEach(card => {
             if (card.querySelector('img')) {
                 card.classList.remove('hidden');
+                card.classList.remove('flipped'); // Ensure not flipped
             }
         });
 
@@ -360,6 +368,7 @@ function flipCard(card) {
                 card.classList.remove('flipped');
                 card.classList.add('hidden');
             });
+            reattachTouchListeners(); // Ensure all cards are interactive after hiding
             showStartMessage();
         }, 2000);
     }
@@ -481,6 +490,13 @@ function flipCard(card) {
   function reattachTouchListeners() {
     const cards = document.querySelectorAll('.card');
     cards.forEach(card => {
+        // Remove previous listeners by cloning the node
+        const newCard = card.cloneNode(true);
+        card.parentNode.replaceChild(newCard, card);
+    });
+    // Now re-select the new cards and add listeners
+    const newCards = document.querySelectorAll('.card');
+    newCards.forEach(card => {
         card.addEventListener('touchstart', (event) => {
             event.preventDefault();
             flipCard(card);
