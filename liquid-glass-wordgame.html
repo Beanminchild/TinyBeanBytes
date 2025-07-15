@@ -385,9 +385,44 @@ const PERKS = [
     desc: 'Get a new word, but keep your progress and score.',
     action: showReshuffleWordPerk,
     rarity: 'epic' // purple
+  },
+  {
+    id: 'pluralize',
+    name: 'Pluralize',
+    desc: 'Add an S, or E and S, to make your word plural.',
+    action: showPluralizePerk,
+    rarity: 'common' // white
   }
   // Add more perks with rarity as needed
 ];
+// --- Pluralize Perk Action ---
+function showPluralizePerk() {
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Pluralize Your Word</div>
+    <div style='display:flex;gap:18px;justify-content:center;margin:18px 0;'>
+      <button class='final-card-btn' id='perk-add-s'>Add S</button>
+      <button class='final-card-btn' id='perk-add-es'>Add E and S</button>
+    </div>
+    <div style='margin-top:10px;'><button class='final-card-btn' id='perk-cancel'>Cancel</button></div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    document.getElementById('perk-add-s').onclick = () => {
+      tiles.push('S');
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-add-es').onclick = () => {
+      tiles.push('E', 'S');
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-cancel').onclick = () => { card.style.display = 'none'; };
+  }, 50);
+}
 
 function maybeShowPerk() {
   if (validWordsThisRound > 0 && validWordsThisRound % 3 === 0) {
@@ -398,8 +433,13 @@ function maybeShowPerk() {
 }
 
 function showPerkSelection() {
-  // Pick 3 random perks
-  const choices = PERKS.slice().sort(() => Math.random() - 0.5).slice(0, 3);
+  // Pick 3 random unique perks from all available
+  const allPerks = PERKS.slice();
+  const choices = [];
+  while (choices.length < 3 && allPerks.length > 0) {
+    const idx = Math.floor(Math.random() * allPerks.length);
+    choices.push(allPerks.splice(idx, 1)[0]);
+  }
   const rarityGlow = {
     'common': 'perk-glow-common',
     'uncommon': 'perk-glow-uncommon',
