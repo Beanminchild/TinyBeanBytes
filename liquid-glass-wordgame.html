@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Liquid Glass Word Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #e0e7ef 0%, #c9d6ff 100%);
+      font-family: 'San Francisco', 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .container {
+      width: 100vw;
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 24px 8px 8px 8px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      font-weight: 700;
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+      color: #222;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 8px #fff8;
+    }
+    .score {
+      font-size: 1.35rem;
+      color: #1976d2;
+      margin-bottom: 12px;
+      background: rgba(255,255,255,0.32);
+      border-radius: 18px;
+      box-shadow: 0 2px 12px #b0c4de33, 0 1.5px 0 #fff8 inset;
+      padding: 10px 32px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      backdrop-filter: blur(6px) saturate(1.1);
+      border: 1.5px solid rgba(255,255,255,0.5);
+      display: inline-block;
+      transition: box-shadow 0.18s, background 0.18s;
+      position: relative;
+      overflow: hidden;
+    }
+    .score.score-animate {
+      animation: scorePop 0.5s cubic-bezier(.23,1.12,.62,1.01);
+      box-shadow: 0 4px 24px #b0c4de77, 0 1.5px 0 #fff8 inset;
+      background: rgba(224,247,250,0.7);
+    }
+    @keyframes scorePop {
+      0% { transform: scale(1); }
+      30% { transform: scale(1.18) rotate(-2deg); }
+      60% { transform: scale(0.96) rotate(1deg); }
+      100% { transform: scale(1); }
+    }
+    .tiles {
+      display: flex;
+      gap: 12px;
+      margin: 18px 0 10px 0;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .tile {
+      width: 56px;
+      height: 56px;
+      border-radius: 22px;
+      background: rgba(255,255,255,0.25);
+      box-shadow: 0 4px 24px 0 #b0c4de44, 0 1.5px 0 #fff8 inset;
+      backdrop-filter: blur(8px) saturate(1.2);
+      border: 1.5px solid rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.1rem;
+      font-weight: 600;
+      color: #2a2a2a;
+      user-select: none;
+      transition: box-shadow 0.15s, transform 0.12s;
+      position: relative;
+      cursor: grab;
+      touch-action: none;
+    }
+    .tile.dragging {
+      opacity: 0.7;
+      box-shadow: 0 8px 32px 0 #b0c4de88, 0 1.5px 0 #fff8 inset;
+      z-index: 10;
+      transform: scale(1.08);
+    }
+    .tile.valid-glow {
+      box-shadow: 0 0 16px 4px #69f07a, 0 4px 24px 0 #b0c4de44, 0 1.5px 0 #fff8 inset;
+      background: rgba(180,255,200,0.38);
+      border-color: #69f07a;
+    }
+    .tile.invalid-glow {
+      box-shadow: 0 0 16px 4px #ff4d4d, 0 4px 24px 0 #b0c4de44, 0 1.5px 0 #fff8 inset;
+      background: rgba(255,180,180,0.38);
+      border-color: #ff4d4d;
+    }
+    .tile.hop {
+      animation: tileHop 0.38s cubic-bezier(.23,1.12,.62,1.01);
+    }
+    .tile.shake {
+      animation: tileShake 0.38s cubic-bezier(.36,1.56,.64,1);
+    }
+    @keyframes tileHop {
+      0% { transform: translateY(0); }
+      30% { transform: translateY(-22px) scale(1.08); }
+      60% { transform: translateY(0) scale(1); }
+      100% { transform: none; }
+    }
+    @keyframes tileShake {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-10px); }
+      40% { transform: translateX(10px); }
+      60% { transform: translateX(-7px); }
+      80% { transform: translateX(7px); }
+      100% { transform: translateX(0); }
+    }
+    .score.score-invalid {
+      box-shadow: 0 0 24px 4px #ff4d4d, 0 2px 12px #b0c4de33, 0 1.5px 0 #fff8 inset;
+      background: rgba(255,180,180,0.38);
+      color: #b71c1c;
+      animation: scoreInvalid 0.5s cubic-bezier(.36,1.56,.64,1);
+    }
+    @keyframes scoreInvalid {
+      0% { transform: scale(1); }
+      20% { transform: scale(1.08) rotate(-2deg); }
+      40% { transform: scale(0.96) rotate(2deg); }
+      100% { transform: scale(1); }
+    }
+    .tile-fly {
+      position: fixed;
+      z-index: 2000;
+      pointer-events: none;
+      transition: transform 0.6s cubic-bezier(.23,1.12,.62,1.01), opacity 0.6s;
+      opacity: 1;
+    }
+    .tile.over {
+      border: 2.5px solid #6ec6ff;
+      background: rgba(255,255,255,0.38);
+    }
+    .recycle-bin {
+      margin: 18px 0 10px 0;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(200,220,255,0.22);
+      box-shadow: 0 2px 16px #b0c4de33;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      color: #3a3a3a;
+      border: 2.5px dashed #6ec6ff;
+      position: relative;
+      transition: background 0.18s, border 0.18s;
+    }
+    .recycle-bin.over {
+      background: #e3f2fdcc;
+      border: 2.5px solid #2196f3;
+      color: #1976d2;
+    }
+    .words-list {
+      width: 100%;
+      min-height: 60px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 18px;
+      margin: 12px 0 8px 0;
+      padding: 10px 8px 6px 8px;
+      box-shadow: 0 2px 12px #b0c4de22;
+      font-size: 1.1rem;
+      color: #444;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: flex-start;
+      min-height: 40px;
+    }
+    .word-chip {
+      background: rgba(255,255,255,0.7);
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: 1.05rem;
+      color: #1976d2;
+      font-weight: 500;
+      margin-bottom: 2px;
+      box-shadow: 0 1px 4px #b0c4de22;
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin: 10px 0 0 0;
+      justify-content: center;
+    }
+    .btn {
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      border: none;
+      border-radius: 16px;
+      padding: 10px 22px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1976d2;
+      box-shadow: 0 2px 8px #b0c4de33;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      outline: none;
+    }
+    .btn:active {
+      background: #bbdefb;
+      color: #0d47a1;
+    }
+    .final-card {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      background: rgba(200,220,255,0.18);
+      animation: fadeInBg 0.4s;
+    }
+    .final-card-inner {
+      background: rgba(255,255,255,0.7);
+      border-radius: 32px;
+      box-shadow: 0 8px 40px #b0c4de55, 0 1.5px 0 #fff8 inset;
+      padding: 38px 28px 28px 28px;
+      min-width: 260px;
+      max-width: 90vw;
+      text-align: center;
+      animation: popIn 0.45s cubic-bezier(.23,1.12,.62,1.01);
+    }
+    .final-card-title {
+      font-size: 2.1rem;
+      font-weight: 700;
+      color: #1976d2;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 8px #fff8;
+    }
+    .final-card-score {
+      font-size: 1.3rem;
+      color: #333;
+      margin-bottom: 18px;
+    }
+    .final-card-btn {
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      border: none;
+      border-radius: 16px;
+      padding: 10px 22px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1976d2;
+      box-shadow: 0 2px 8px #b0c4de33;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      outline: none;
+    }
+    .final-card-btn:active {
+      background: #bbdefb;
+      color: #0d47a1;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0; }
+      80% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes fadeInBg {
+      0% { background: rgba(200,220,255,0); }
+      100% { background: rgba(200,220,255,0.18); }
+    }
+    .perk-card {
+      background: rgba(255,255,255,0.85);
+      border-radius: 22px;
+      box-shadow: 0 4px 24px #b0c4de44, 0 1.5px 0 #fff8 inset;
+      padding: 18px 14px;
+      min-width: 110px;
+      cursor: pointer;
+      transition: transform 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .perk-card-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1976d2;
+      margin-bottom: 8px;
+    }
+    .perk-card-desc {
+      font-size: 0.98rem;
+      color: #444;
+      text-align: center;
+    }
+    .perk-glow-common {
+      box-shadow: 0 0 16px 4px rgba(255,255,255,0.7);
+    }
+    .perk-glow-uncommon {
+      box-shadow: 0 0 16px 4px #69f07a;
+    }
+    .perk-glow-rare {
+      box-shadow: 0 0 16px 4px #2196f3;
+    }
+    .perk-glow-epic {
+      box-shadow: 0 0 16px 4px #9c27b0;
+    }
+    .perk-cards-row {
+      display: flex;
+      gap: 18px;
+      justify-content: center;
+      margin: 18px 0;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 480px) {
+      .perk-card {
+        padding: 14px 10px;
+        min-width: 90px;
+      }
+      .perk-card-name {
+        font-size: 1rem;
+      }
+      .perk-card-desc {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Liquid Glass Word Game</h1>
+    <div class="score" id="score" style="display:none">Score: 0</div>
+    <div class="tiles" id="tiles" style="display:none"></div>
+    <div class="recycle-bin" id="recycle-bin" title="Drag here to remove letter" style="display:none">♻️</div>
+    <div class="actions">
+      <button class="btn" id="submit-word" style="display:none">Submit Word</button>
+      <button class="btn" id="give-up" style="display:none">Give Up</button>
+      <button class="btn" id="new-game">New Game</button>
+    </div>
+    <div class="words-list" id="words-list" style="display:none"></div>
+    <div class="final-card" id="final-card" style="display:none"></div>
+  </div>
+  <script>
+    // Simple dictionary for demo (replace with a real one for production)
+    const DICTIONARY = [
+      'computer','keyboard','elephant','umbrella','sandwich','triangle','mountain','language','hospital','backpack','dinosaur','airplane','building','calendar','diamond','festival','galaxy','holiday','internet','jewelry','kangaroo','laughter','magazine','notebook','operator','painting','question','railroad','telescope','vacation','whistle','xylophone','zeppelin','planet','rocket','signal','window','yellow','orange','purple','circle','square','friend','school','pencil','eraser','bottle','camera','guitar','violin','rabbit','monkey','parrot','zebra','turtle','dragon','castle','forest','garden','island','jungle','kitten','laptop','mirror','napkin','ocean','pirate','quartz','rocket','safari','ticket','unicorn','violet','wallet','yogurt','zodiac','bridge','clouds','desert','energy','flower','gloves','hammer','igloo','jacket','kitten','ladder','magnet','needle','object','pillow','quiver','rocket','saddle','ticket','unicorn','valley','wallet','yellow','zebra'
+    ];
+
+    let currentWord = '';
+    let tiles = [];
+    let foundWords = [];
+    let score = 0;
+    let draggingIdx = null;
+    let gameOver = false;
+    let gameStarted = false;
+let validWordsThisRound = 0;
+let discardedTiles = [];
+
+// --- Perk System ---
+const PERKS = [
+  {
+    id: 'add-letter',
+    name: 'Add a Letter',
+    desc: 'Add a letter of your choice from a 3x3 grid.',
+    action: showAddLetterPerk,
+    rarity: 'rare' // blue
+  },
+  {
+    id: 'restore-discarded',
+    name: 'Restore Discarded',
+    desc: 'Restore any letters you threw away this round.',
+    action: showRestoreDiscardedPerk,
+    rarity: 'uncommon' // green
+  },
+  {
+    id: 'reshuffle-word',
+    name: 'New Word',
+    desc: 'Get a new word, but keep your progress and score.',
+    action: showReshuffleWordPerk,
+    rarity: 'epic' // purple
+  }
+  // Add more perks with rarity as needed
+];
+
+function maybeShowPerk() {
+  if (validWordsThisRound > 0 && validWordsThisRound % 3 === 0) {
+    showPerkSelection();
+    return true;
+  }
+  return false;
+}
+
+function showPerkSelection() {
+  // Pick 3 random perks
+  const choices = PERKS.slice().sort(() => Math.random() - 0.5).slice(0, 3);
+  const rarityGlow = {
+    'common': 'perk-glow-common',
+    'uncommon': 'perk-glow-uncommon',
+    'rare': 'perk-glow-rare',
+    'epic': 'perk-glow-epic',
+    'legendary': 'perk-glow-legendary',
+    'mythic': 'perk-glow-mythic',
+    'rainbow': 'perk-glow-rainbow'
+  };
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class="final-card-inner">
+    <div class="final-card-title">Choose a Perk!</div>
+    <div class='perk-cards-row'>
+      ${choices.map((perk, i) => `
+        <div class='perk-card ${rarityGlow[perk.rarity] || ''}' data-perk='${perk.id}' tabindex='0'>
+          <div class='perk-card-name'>${perk.name}</div>
+          <div class='perk-card-desc'>${perk.desc}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    document.querySelectorAll('.perk-card').forEach(el => {
+      el.onclick = () => {
+        card.style.display = 'none';
+        const perk = PERKS.find(p => p.id === el.dataset.perk);
+        if (perk && typeof perk.action === 'function') perk.action();
+      };
+      el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') el.click(); };
+    });
+  }, 50);
+}
+
+// --- Perk Actions ---
+function showAddLetterPerk() {
+  // Show a modal with a 3x3 grid of random letters
+  const letters = Array.from({length:9}, () => String.fromCharCode(65 + Math.floor(Math.random()*26)));
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Pick a Letter</div>
+    <div style='display:grid;grid-template-columns:repeat(3,44px);gap:14px;justify-content:center;margin:18px 0;'>
+      ${letters.map(l => `<div class='perk-letter' tabindex='0' style='width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;background:rgba(224,247,250,0.7);border-radius:14px;box-shadow:0 2px 8px #b0c4de33;cursor:pointer;transition:background 0.15s;'>${l}</div>`).join('')}
+    </div>
+    <div style='margin-top:10px;'><button class='final-card-btn' id='perk-cancel'>Cancel</button></div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    document.querySelectorAll('.perk-letter').forEach(el => {
+      el.onclick = () => {
+        tiles.push(el.textContent);
+        renderTiles();
+        card.style.display = 'none';
+        checkGameOver();
+      };
+      el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') el.click(); };
+    });
+    document.getElementById('perk-cancel').onclick = () => { card.style.display = 'none'; };
+  }, 50);
+}
+
+function showRestoreDiscardedPerk() {
+  if (discardedTiles.length === 0) {
+    showPerkInfo('No discarded letters to restore!');
+    return;
+  }
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Restore Discarded Letters</div>
+    <div style='display:flex;gap:12px;justify-content:center;margin:18px 0;flex-wrap:wrap;'>
+      ${discardedTiles.map((l,i) => `<div class='perk-letter' data-idx='${i}' tabindex='0' style='width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;background:rgba(255,255,255,0.7);border-radius:14px;box-shadow:0 2px 8px #b0c4de33;cursor:pointer;transition:background 0.15s;outline:2px solid transparent;'>${l}</div>`).join('')}
+    </div>
+    <div style='margin-top:10px;display:flex;gap:10px;justify-content:center;'>
+      <button class='final-card-btn' id='perk-restore'>Restore Selected</button>
+      <button class='final-card-btn' id='perk-cancel'>Cancel</button>
+    </div>
+    <div id='perk-restore-msg' style='margin-top:8px;font-size:0.98rem;color:#1976d2;'></div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    const selected = new Set();
+    const updateMsg = () => {
+      const msg = document.getElementById('perk-restore-msg');
+      if (selected.size === 0) {
+        msg.textContent = 'Select one or more letters to restore.';
+      } else {
+        msg.textContent = `${selected.size} letter${selected.size > 1 ? 's' : ''} selected.`;
+      }
+    };
+    document.querySelectorAll('.perk-letter').forEach(el => {
+      el.onclick = () => {
+        const idx = parseInt(el.dataset.idx);
+        if (selected.has(idx)) {
+          selected.delete(idx);
+          el.style.outline = '2px solid transparent';
+          el.style.background = 'rgba(255,255,255,0.7)';
+        } else {
+          selected.add(idx);
+          el.style.outline = '2.5px solid #1976d2';
+          el.style.background = 'rgba(224,247,250,0.7)';
+        }
+        updateMsg();
+      };
+      el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') el.click(); };
+    });
+    document.getElementById('perk-restore').onclick = () => {
+      if (selected.size === 0) {
+        document.getElementById('perk-restore-msg').textContent = 'Please select at least one letter.';
+        return;
+      }
+      // Restore all selected
+      // Sort descending so we can splice safely
+      const idxs = Array.from(selected).sort((a,b) => b-a);
+      idxs.forEach(idx => {
+        tiles.push(discardedTiles[idx]);
+        discardedTiles.splice(idx,1);
+      });
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-cancel').onclick = () => { card.style.display = 'none'; };
+    updateMsg();
+  }, 50);
+}
+
+function showReshuffleWordPerk() {
+  // Pick a new word, but keep foundWords, score, discardedTiles
+  currentWord = pickRandomWord();
+  tiles = currentWord.split('');
+  renderTiles();
+  showPerkInfo('New word loaded!');
+}
+
+function showPerkInfo(msg) {
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>${msg}</div>
+    <div style='margin-top:10px;'><button class='final-card-btn' id='perk-ok'>OK</button></div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    document.getElementById('perk-ok').onclick = () => { card.style.display = 'none'; };
+  }, 50);
+}
+
+    function pickRandomWord() {
+      const filtered = DICTIONARY.filter(w => w.length >= 6 && w.length <= 8);
+      return filtered[Math.floor(Math.random() * filtered.length)].toUpperCase();
+    }
+
+    function renderTiles() {
+      const tilesDiv = document.getElementById('tiles');
+      tilesDiv.innerHTML = '';
+      tiles.forEach((ch, idx) => {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.textContent = ch;
+        tile.setAttribute('draggable', 'true');
+        tile.dataset.idx = idx;
+        // Touch events for mobile
+        tile.addEventListener('touchstart', (e) => handleTouchStart(e, idx));
+        tile.addEventListener('touchmove', (e) => handleTouchMove(e, idx));
+        tile.addEventListener('touchend', (e) => handleTouchEnd(e, idx));
+        // Drag events for desktop
+        tile.addEventListener('dragstart', (e) => handleDragStart(e, idx));
+        tile.addEventListener('dragover', (e) => handleDragOver(e, idx));
+        tile.addEventListener('drop', (e) => handleDrop(e, idx));
+        tile.addEventListener('dragend', (e) => handleDragEnd(e, idx));
+        tilesDiv.appendChild(tile);
+      });
+    }
+
+// Touch drag logic
+let touchStartIdx = null;
+let touchStartX = 0, touchStartY = 0;
+function handleTouchStart(e, idx) {
+  if (gameOver) return;
+  touchStartIdx = idx;
+  const touch = e.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+  e.target.classList.add('dragging');
+}
+function handleTouchMove(e, idx) {
+  if (gameOver || touchStartIdx === null) return;
+  const touch = e.touches[0];
+  const el = e.target;
+  el.style.transform = `translate(${touch.clientX - touchStartX}px, ${touch.clientY - touchStartY}px) scale(1.08)`;
+  // Check if over recycle bin
+  const bin = document.getElementById('recycle-bin');
+  const binRect = bin.getBoundingClientRect();
+  if (
+    touch.clientX > binRect.left && touch.clientX < binRect.right &&
+    touch.clientY > binRect.top && touch.clientY < binRect.bottom
+  ) {
+    bin.classList.add('over');
+  } else {
+    bin.classList.remove('over');
+  }
+}
+function handleTouchEnd(e, idx) {
+  if (gameOver || touchStartIdx === null) return;
+  const el = e.target;
+  el.style.transform = '';
+  const touch = e.changedTouches[0];
+  const bin = document.getElementById('recycle-bin');
+  const binRect = bin.getBoundingClientRect();
+  if (
+    touch.clientX > binRect.left && touch.clientX < binRect.right &&
+    touch.clientY > binRect.top && touch.clientY < binRect.bottom
+  ) {
+    // Remove letter
+    // Save to discardedTiles for perk
+    discardedTiles.push(tiles[touchStartIdx]);
+    tiles.splice(touchStartIdx, 1);
+    bin.classList.remove('over');
+    renderTiles();
+    checkGameOver();
+  }
+  touchStartIdx = null;
+  bin.classList.remove('over');
+  el.classList.remove('dragging');
+}
+
+
+// Desktop drag logic
+function handleDragStart(e, idx) {
+  if (gameOver) return;
+  draggingIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.target.classList.add('dragging');
+}
+function handleDragOver(e, idx) {
+  if (gameOver) return;
+  e.preventDefault();
+  if (draggingIdx !== null && draggingIdx !== idx) {
+    e.target.classList.add('over');
+  }
+}
+function handleDrop(e, idx) {
+  if (gameOver) return;
+  e.preventDefault();
+  if (draggingIdx !== null && draggingIdx !== idx) {
+    // Swap
+    [tiles[draggingIdx], tiles[idx]] = [tiles[idx], tiles[draggingIdx]];
+    renderTiles();
+  }
+  e.target.classList.remove('over');
+  draggingIdx = null;
+}
+function handleDragEnd(e, idx) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.tile').forEach(t => t.classList.remove('over'));
+  draggingIdx = null;
+}
+
+// Recycle bin drag for desktop
+const recycleBin = document.getElementById('recycle-bin');
+recycleBin.addEventListener('dragover', (e) => {
+  if (gameOver) return;
+  e.preventDefault();
+  recycleBin.classList.add('over');
+});
+recycleBin.addEventListener('dragleave', (e) => {
+  recycleBin.classList.remove('over');
+});
+recycleBin.addEventListener('drop', (e) => {
+  if (gameOver) return;
+  e.preventDefault();
+  if (draggingIdx !== null) {
+    // Save to discardedTiles for perk
+    discardedTiles.push(tiles[draggingIdx]);
+    tiles.splice(draggingIdx, 1);
+    renderTiles();
+    checkGameOver();
+  }
+  recycleBin.classList.remove('over');
+  draggingIdx = null;
+});
+
+function updateScore() {
+  const scoreDiv = document.getElementById('score');
+  const prev = parseInt(scoreDiv.textContent.replace(/\D/g, '')) || 0;
+  scoreDiv.textContent = `Score: ${score}`;
+  if (score > prev) {
+    scoreDiv.classList.remove('score-animate');
+    // Force reflow for restart animation
+    void scoreDiv.offsetWidth;
+    scoreDiv.classList.add('score-animate');
+    // Remove animation class after animation ends
+    setTimeout(() => scoreDiv.classList.remove('score-animate'), 500);
+  }
+}
+
+    function renderWordsList() {
+      const list = document.getElementById('words-list');
+      list.innerHTML = '';
+      foundWords.forEach(w => {
+        const chip = document.createElement('span');
+        chip.className = 'word-chip';
+        chip.textContent = w;
+        list.appendChild(chip);
+      });
+    }
+
+
+async function isValidWord(word) {
+  if (word.length < 3) return false;
+  if (DICTIONARY.includes(word.toLowerCase())) return true;
+  // Fallback: check dictionary API (using Free Dictionary API)
+  try {
+    const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      // If the API returns an array with at least one entry, it's a valid word
+      if (Array.isArray(data) && data.length > 0) return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
+async function submitWord() {
+  if (gameOver) return;
+  const word = tiles.join('').toLowerCase();
+  if (foundWords.includes(word)) return;
+  const valid = await isValidWord(word);
+  const tileEls = Array.from(document.querySelectorAll('.tile'));
+  const scoreDiv = document.getElementById('score');
+  if (valid) {
+    // Animate: green glow and hop one by one, then fly to score
+    for (let i = 0; i < tileEls.length; ++i) {
+      const tile = tileEls[i];
+      tile.classList.add('valid-glow');
+      setTimeout(() => {
+        tile.classList.add('hop');
+        setTimeout(() => tile.classList.remove('hop'), 380);
+      }, i * 80);
+    }
+    // After hop, animate fly to score
+    setTimeout(() => {
+      let baseStagger = 120;
+      let baseDuration = 900;
+      let initialDelay = tileEls.length * 80 + 120;
+      if (tileEls.length <= 5) {
+        baseStagger = 220;
+        baseDuration = 1200;
+        initialDelay += 120;
+      }
+      // Custom stagger: first 3 tiles slow, then faster
+      const slowStagger = 320;
+      const fastStagger = baseStagger;
+      tileEls.forEach((tile, i) => {
+        // Clone tile for fly effect
+        const rect = tile.getBoundingClientRect();
+        const scoreRect = scoreDiv.getBoundingClientRect();
+        const fly = tile.cloneNode(true);
+        fly.classList.add('tile-fly');
+        fly.style.left = rect.left + 'px';
+        fly.style.top = rect.top + 'px';
+        fly.style.width = rect.width + 'px';
+        fly.style.height = rect.height + 'px';
+        fly.style.zIndex = 3000 + i;
+        document.body.appendChild(fly);
+        // Calculate custom delay
+        let flyDelay = 80;
+        if (i < 3) {
+          flyDelay += i * slowStagger;
+        } else {
+          flyDelay += 3 * slowStagger + (i - 3) * fastStagger;
+        }
+        setTimeout(() => {
+          // For short words, add a little horizontal offset to spread tiles
+          let xOffset = 0;
+          if (tileEls.length <= 5) {
+            xOffset = (i - (tileEls.length-1)/2) * 32;
+          }
+          fly.style.transform = `translate(${scoreRect.left + scoreRect.width/2 - rect.left - rect.width/2 + xOffset}px, ${scoreRect.top + scoreRect.height/2 - rect.top - rect.height/2 - 10}px) scale(0.4)`;
+          fly.style.opacity = '0';
+        }, flyDelay);
+        setTimeout(() => fly.remove(), baseDuration + flyDelay);
+      });
+    }, tileEls.length * 80 + 120);
+    // After all animations, update score
+    setTimeout(() => {
+      foundWords.push(word);
+      score += word.length * 10;
+      updateScore();
+      renderWordsList();
+      tileEls.forEach(tile => tile.classList.remove('valid-glow'));
+      validWordsThisRound++;
+      if (!maybeShowPerk()) {
+        // Only check game over if not showing perk
+        checkGameOver();
+      }
+    }, (tileEls.length <= 5
+        ? (3 * 320 + Math.max(0, tileEls.length - 3) * 220 + 1200)
+        : (3 * 320 + Math.max(0, tileEls.length - 3) * 120 + 950)));
+  } else {
+    // Animate: red glow and shake
+    tileEls.forEach(tile => {
+      tile.classList.add('invalid-glow', 'shake');
+      setTimeout(() => {
+        tile.classList.remove('shake');
+        tile.classList.remove('invalid-glow');
+      }, 400);
+    });
+    // Scoreboard red glow
+    scoreDiv.classList.add('score-invalid');
+    setTimeout(() => scoreDiv.classList.remove('score-invalid'), 500);
+  }
+}
+
+    function showFinalCard(message) {
+      const card = document.getElementById('final-card');
+      card.innerHTML = `<div class="final-card-inner">
+        <div class="final-card-title">${message}</div>
+        <div class="final-card-score">Final Score: <b>${score}</b></div>
+        <button class="final-card-btn" id="final-new-game">New Game</button>
+      </div>`;
+      card.style.display = 'flex';
+      setTimeout(() => {
+        document.getElementById('final-new-game').onclick = () => {
+          card.style.display = 'none';
+          enableNewGame();
+        };
+      }, 50);
+    }
+
+    function checkGameOver() {
+      if (tiles.length === 0) {
+        gameOver = true;
+        showFinalCard('Game Over!');
+        hideGameUI();
+      }
+    }
+
+    function giveUp() {
+      if (gameOver) return;
+      gameOver = true;
+      showFinalCard('You gave up!');
+      hideGameUI();
+    }
+
+function newGame() {
+  currentWord = pickRandomWord();
+  tiles = currentWord.split('');
+  foundWords = [];
+  score = 0;
+  gameOver = false;
+  gameStarted = true;
+  validWordsThisRound = 0;
+  discardedTiles = [];
+  updateScore();
+  renderTiles();
+  renderWordsList();
+  showGameUI();
+  disableNewGame();
+}
+
+    function showGameUI() {
+      document.getElementById('score').style.display = '';
+      document.getElementById('tiles').style.display = '';
+      document.getElementById('recycle-bin').style.display = '';
+      document.getElementById('submit-word').style.display = '';
+      document.getElementById('give-up').style.display = '';
+      document.getElementById('words-list').style.display = '';
+    }
+    function hideGameUI() {
+      document.getElementById('score').style.display = 'none';
+      document.getElementById('tiles').style.display = 'none';
+      document.getElementById('recycle-bin').style.display = 'none';
+      document.getElementById('submit-word').style.display = 'none';
+      document.getElementById('give-up').style.display = 'none';
+      document.getElementById('words-list').style.display = 'none';
+    }
+    function disableNewGame() {
+      const btn = document.getElementById('new-game');
+      btn.disabled = true;
+      btn.style.opacity = 0.5;
+      btn.style.pointerEvents = 'none';
+    }
+    function enableNewGame() {
+      const btn = document.getElementById('new-game');
+      btn.disabled = false;
+      btn.style.opacity = 1;
+      btn.style.pointerEvents = '';
+      hideGameUI();
+      gameStarted = false;
+    }
+
+    document.getElementById('submit-word').addEventListener('click', submitWord);
+    document.getElementById('give-up').addEventListener('click', giveUp);
+    document.getElementById('new-game').addEventListener('click', function() {
+      if (!gameStarted) newGame();
+    });
+    // On load, hide game UI, enable new game
+    window.onload = function() {
+      hideGameUI();
+      enableNewGame();
+    };
+  </script>
+</body>
+</html>
