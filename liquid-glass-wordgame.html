@@ -348,6 +348,27 @@
     <div class="final-card" id="final-card" style="display:none"></div>
   </div>
   <script>
+
+    // --- Sound Effects ---
+function playPopSound({pitch=220, duration=0.11, volume=0.18, type='sine'} = {}) {
+  try {
+    const ctx = playPopSound.ctx || (playPopSound.ctx = new (window.AudioContext || window.webkitAudioContext)());
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.value = pitch;
+    g.gain.value = volume;
+    o.connect(g);
+    g.connect(ctx.destination);
+    // Envelope for pop
+    g.gain.setValueAtTime(volume, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(volume * 0.7, ctx.currentTime + duration * 0.3);
+    g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    o.start();
+    o.stop(ctx.currentTime + duration);
+    o.onended = () => { o.disconnect(); g.disconnect(); };
+  } catch (e) {}
+}
     // Simple dictionary for demo (replace with a real one for production)
     const DICTIONARY = [
       'computer','keyboard','elephant','umbrella','sandwich','triangle','mountain','language','hospital','backpack','dinosaur','airplane','building','calendar','diamond','festival','galaxy','holiday','internet','jewelry','kangaroo','laughter','magazine','notebook','operator','painting','question','railroad','telescope','vacation','whistle','xylophone','zeppelin','planet','rocket','signal','window','yellow','orange','purple','circle','square','friend','school','pencil','eraser','bottle','camera','guitar','violin','rabbit','monkey','parrot','zebra','turtle','dragon','castle','forest','garden','island','jungle','kitten','laptop','mirror','napkin','ocean','pirate','quartz','rocket','safari','ticket','unicorn','violet','wallet','yogurt','zodiac','bridge','clouds','desert','energy','flower','gloves','hammer','igloo','jacket','kitten','ladder','magnet','needle','object','pillow','quiver','rocket','saddle','ticket','unicorn','valley','wallet','yellow','zebra'
@@ -614,21 +635,49 @@ function showPerkInfo(msg) {
     }
 
 // Touch drag logic
+
 let touchStartIdx = null;
-let touchStartX = 0, touchStartY = 0;
+let touchGhost = null;
+let touchOverIdx = null; // 'bin' or a tile index
+let touchTargetIdx = null; // index of tile currently under finger
+let touchStartX = 0, touchStartY = 0, ghostOffsetX = 0, ghostOffsetY = 0;
+
 function handleTouchStart(e, idx) {
   if (gameOver) return;
+  if (e.touches.length > 1) return;
   touchStartIdx = idx;
   const touch = e.touches[0];
   touchStartX = touch.clientX;
   touchStartY = touch.clientY;
-  e.target.classList.add('dragging');
+  // Create ghost tile
+  const tileEls = document.querySelectorAll('.tile');
+  const origTile = tileEls[idx];
+  const rect = origTile.getBoundingClientRect();
+  touchGhost = origTile.cloneNode(true);
+  touchGhost.style.position = 'fixed';
+  touchGhost.style.left = rect.left + 'px';
+  touchGhost.style.top = rect.top + 'px';
+  touchGhost.style.width = rect.width + 'px';
+  touchGhost.style.height = rect.height + 'px';
+  touchGhost.style.zIndex = 9999;
+  touchGhost.style.pointerEvents = 'none';
+  touchGhost.classList.add('dragging');
+  document.body.appendChild(touchGhost);
+  ghostOffsetX = touch.clientX - rect.left;
+  ghostOffsetY = touch.clientY - rect.top;
+  // Do not change origTile opacity
+  touchOverIdx = null;
+  document.body.style.touchAction = 'none';
 }
+
 function handleTouchMove(e, idx) {
-  if (gameOver || touchStartIdx === null) return;
+  if (gameOver || touchStartIdx === null || !touchGhost) return;
+  e.preventDefault(); // Prevent scrolling
   const touch = e.touches[0];
-  const el = e.target;
-  el.style.transform = `translate(${touch.clientX - touchStartX}px, ${touch.clientY - touchStartY}px) scale(1.08)`;
+  // Move ghost tile
+  touchGhost.style.left = (touch.clientX - ghostOffsetX) + 'px';
+  touchGhost.style.top = (touch.clientY - ghostOffsetY) + 'px';
+
   // Check if over recycle bin
   const bin = document.getElementById('recycle-bin');
   const binRect = bin.getBoundingClientRect();
@@ -637,32 +686,91 @@ function handleTouchMove(e, idx) {
     touch.clientY > binRect.top && touch.clientY < binRect.bottom
   ) {
     bin.classList.add('over');
+    touchOverIdx = 'bin';
+    touchTargetIdx = null;
+    // Remove highlight from all tiles
+    document.querySelectorAll('.tile').forEach(t => t.classList.remove('over'));
   } else {
     bin.classList.remove('over');
+    // Check if over another tile for swap
+    let found = false;
+    document.querySelectorAll('.tile').forEach((tile, i) => {
+      if (i === touchStartIdx) return;
+      const tRect = tile.getBoundingClientRect();
+      if (
+        touch.clientX > tRect.left && touch.clientX < tRect.right &&
+        touch.clientY > tRect.top && touch.clientY < tRect.bottom
+      ) {
+        tile.classList.add('over');
+        touchTargetIdx = i;
+        found = true;
+      } else {
+        tile.classList.remove('over');
+      }
+    });
+    if (!found) touchTargetIdx = null;
+    touchOverIdx = touchTargetIdx;
   }
 }
+
 function handleTouchEnd(e, idx) {
   if (gameOver || touchStartIdx === null) return;
-  const el = e.target;
-  el.style.transform = '';
-  const touch = e.changedTouches[0];
-  const bin = document.getElementById('recycle-bin');
-  const binRect = bin.getBoundingClientRect();
-  if (
-    touch.clientX > binRect.left && touch.clientX < binRect.right &&
-    touch.clientY > binRect.top && touch.clientY < binRect.bottom
-  ) {
-    // Remove letter
-    // Save to discardedTiles for perk
-    discardedTiles.push(tiles[touchStartIdx]);
-    tiles.splice(touchStartIdx, 1);
-    bin.classList.remove('over');
-    renderTiles();
-    checkGameOver();
+  const startIdx = touchStartIdx;
+  // Defensive: check bounds
+  if (startIdx < 0 || startIdx >= tiles.length) {
+    touchStartIdx = null;
+    touchOverIdx = null;
+    touchTargetIdx = null;
+    if (touchGhost) { touchGhost.remove(); touchGhost = null; }
+    document.body.style.touchAction = '';
+    document.querySelectorAll('.tile').forEach(t => t.classList.remove('over'));
+    document.getElementById('recycle-bin').classList.remove('over');
+    return;
+  }
+  if (touchGhost) {
+    touchGhost.remove();
+    touchGhost = null;
+  }
+  document.body.style.touchAction = '';
+  // Remove all highlights
+  document.querySelectorAll('.tile').forEach(t => t.classList.remove('over'));
+  document.getElementById('recycle-bin').classList.remove('over');
+
+  // --- Always use last touch position to detect drop target ---
+  let finalTargetIdx = null;
+  if (e.changedTouches && e.changedTouches.length > 0) {
+    const touch = e.changedTouches[0];
+    document.querySelectorAll('.tile').forEach((tile, i) => {
+      if (i === startIdx) return;
+      const tRect = tile.getBoundingClientRect();
+      if (
+        touch.clientX > tRect.left && touch.clientX < tRect.right &&
+        touch.clientY > tRect.top && touch.clientY < tRect.bottom
+      ) {
+        finalTargetIdx = i;
+      }
+    });
+  }
+
+  // Determine drop action
+  if (touchOverIdx === 'bin') {
+    // Remove letter only if valid
+    if (startIdx >= 0 && startIdx < tiles.length) {
+      discardedTiles.push(tiles[startIdx]);
+      tiles.splice(startIdx, 1);
+      renderTiles();
+      checkGameOver();
+    }
+  } else if (typeof finalTargetIdx === 'number' && finalTargetIdx !== startIdx) {
+    // Swap tiles only if both indices are valid
+    if (startIdx >= 0 && startIdx < tiles.length && finalTargetIdx >= 0 && finalTargetIdx < tiles.length) {
+      [tiles[startIdx], tiles[finalTargetIdx]] = [tiles[finalTargetIdx], tiles[startIdx]];
+      renderTiles();
+    }
   }
   touchStartIdx = null;
-  bin.classList.remove('over');
-  el.classList.remove('dragging');
+  touchOverIdx = null;
+  touchTargetIdx = null;
 }
 
 
@@ -730,6 +838,7 @@ function updateScore() {
     // Force reflow for restart animation
     void scoreDiv.offsetWidth;
     scoreDiv.classList.add('score-animate');
+    playPopSound({pitch: 540, duration: 0.13, volume: 0.22, type: 'triangle'});
     // Remove animation class after animation ends
     setTimeout(() => scoreDiv.classList.remove('score-animate'), 500);
   }
@@ -770,12 +879,16 @@ async function submitWord() {
   const tileEls = Array.from(document.querySelectorAll('.tile'));
   const scoreDiv = document.getElementById('score');
   if (valid) {
+
     // Animate: green glow and hop one by one, then fly to score
     for (let i = 0; i < tileEls.length; ++i) {
+    //playPopSound({pitch: 320 + Math.random()*80, duration: 0.10 + Math.random()*0.03, volume: 0.18 + Math.random()*0.04, type: 'triangle'});
+        
       const tile = tileEls[i];
       tile.classList.add('valid-glow');
       setTimeout(() => {
         tile.classList.add('hop');
+        playPopSound({pitch: 320 + Math.random()*80, duration: 0.10 + Math.random()*0.03, volume: 0.18 + Math.random()*0.04, type: 'triangle'});
         setTimeout(() => tile.classList.remove('hop'), 380);
       }, i * 80);
     }
@@ -812,6 +925,7 @@ async function submitWord() {
           flyDelay += 3 * slowStagger + (i - 3) * fastStagger;
         }
         setTimeout(() => {
+        playPopSound({pitch: 420 + Math.random()*60, duration: 0.09, volume: 0.13, type: 'triangle'});
           // For short words, add a little horizontal offset to spread tiles
           let xOffset = 0;
           if (tileEls.length <= 5) {
@@ -842,6 +956,7 @@ async function submitWord() {
     // Animate: red glow and shake
     tileEls.forEach(tile => {
       tile.classList.add('invalid-glow', 'shake');
+      playPopSound({pitch: 120 + Math.random()*30, duration: 0.10, volume: 0.16, type: 'square'});
       setTimeout(() => {
         tile.classList.remove('shake');
         tile.classList.remove('invalid-glow');
