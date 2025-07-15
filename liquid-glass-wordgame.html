@@ -331,6 +331,19 @@
         font-size: 0.9rem;
       }
     }
+  /* Perk Store scrollable row for mobile */
+  .perk-cards-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 18px;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .perk-cards-scroll .perk-card {
+    scroll-snap-align: center;
+  }
   </style>
 </head>
 <body>
@@ -342,6 +355,7 @@
     <div class="actions">
       <button class="btn" id="submit-word" style="display:none">Submit Word</button>
       <button class="btn" id="give-up" style="display:none">Give Up</button>
+      <button class="btn" id="perk-store" disabled style="">Perk Store</button>
       <button class="btn" id="new-game">New Game</button>
     </div>
     <div class="words-list" id="words-list" style="display:none"></div>
@@ -758,6 +772,11 @@ function handleTouchEnd(e, idx) {
     if (startIdx >= 0 && startIdx < tiles.length) {
       discardedTiles.push(tiles[startIdx]);
       tiles.splice(startIdx, 1);
+      // recycling type sound idk i tried
+      playPopSound({pitch: 420, duration: 0.09, volume: 0.14, type: 'triangle'});
+      setTimeout(() => {
+      playPopSound({pitch: 220, duration: 0.11, volume: 0.11, type: 'triangle'});
+      }, 55);
       renderTiles();
       checkGameOver();
     }
@@ -829,20 +848,121 @@ recycleBin.addEventListener('drop', (e) => {
   draggingIdx = null;
 });
 
-function updateScore() {
-  const scoreDiv = document.getElementById('score');
-  const prev = parseInt(scoreDiv.textContent.replace(/\D/g, '')) || 0;
-  scoreDiv.textContent = `Score: ${score}`;
-  if (score > prev) {
-    scoreDiv.classList.remove('score-animate');
-    // Force reflow for restart animation
-    void scoreDiv.offsetWidth;
-    scoreDiv.classList.add('score-animate');
-    playPopSound({pitch: 540, duration: 0.13, volume: 0.22, type: 'triangle'});
-    // Remove animation class after animation ends
-    setTimeout(() => scoreDiv.classList.remove('score-animate'), 500);
+    function updateScore() {
+      const scoreDiv = document.getElementById('score');
+      const prev = parseInt(scoreDiv.textContent.replace(/\D/g, '')) || 0;
+      scoreDiv.textContent = `Score: ${score}`;
+      // Enable/disable perk store button
+      const perkStoreBtn = document.getElementById('perk-store');
+      if (score > 0) {
+        perkStoreBtn.disabled = false;
+        perkStoreBtn.style.opacity = 1;
+        perkStoreBtn.style.pointerEvents = '';
+      } else {
+        perkStoreBtn.disabled = true;
+        perkStoreBtn.style.opacity = 0.5;
+        perkStoreBtn.style.pointerEvents = 'none';
+      }
+      if (score > prev) {
+        scoreDiv.classList.remove('score-animate');
+        // Force reflow for restart animation
+        void scoreDiv.offsetWidth;
+        scoreDiv.classList.add('score-animate');
+        playPopSound({pitch: 540, duration: 0.13, volume: 0.22, type: 'triangle'});
+        // Remove animation class after animation ends
+        setTimeout(() => scoreDiv.classList.remove('score-animate'), 500);
+      }
+    }
+// --- Perk Store ---
+const PERK_PRICES = {
+  'common': 30,
+  'uncommon': 60,
+  'rare': 120,
+  'epic': 200,
+  'legendary': 350,
+  'mythic': 500,
+  'rainbow': 777
+};
+
+function showPerkStore() {
+  const card = document.getElementById('final-card');
+  // Rarity options for filter
+  const rarities = [
+    'all',
+    ...Array.from(new Set(PERKS.map(p => p.rarity))).filter(Boolean)
+  ];
+  let selectedRarity = 'all';
+
+  function renderPerkCards() {
+    const perksToShow = selectedRarity === 'all' ? PERKS : PERKS.filter(p => p.rarity === selectedRarity);
+    return perksToShow.map(perk => {
+      const price = PERK_PRICES[perk.rarity] || 100;
+      return `<div class='perk-card ${(perk.rarity ? 'perk-glow-' + perk.rarity : '')}' style='min-width:140px;max-width:180px;position:relative;opacity:${score >= price ? 1 : 0.5};scroll-snap-align:center;'>
+        <div class='perk-card-name'>${perk.name}</div>
+        <div class='perk-card-desc'>${perk.desc}</div>
+        <div style='margin:8px 0 0 0;font-size:1.02rem;color:#1976d2;font-weight:600;'>${price} pts</div>
+        <button class='final-card-btn buy-perk-btn' data-perk='${perk.id}' data-price='${price}' style='margin-top:8px;' ${score < price ? 'disabled' : ''}>Buy</button>
+      </div>`;
+    }).join('');
   }
+
+  card.innerHTML = `
+    <div class="final-card-inner" id="perk-store-card" style="max-width:98vw;max-height:90vh;overflow:hidden;position:relative;">
+      <div class="final-card-title">Perk Store</div>
+      <div style='font-size:1.05rem;margin-bottom:10px;'>Spend your score points to buy a perk!</div>
+      <div style='margin-bottom:8px;margin-top:4px;display:flex;align-items:center;justify-content:center;'>
+        <label for='perk-rarity-filter' style='font-size:1.01rem;margin-right:8px;'>Filter by rarity:</label>
+        <select id='perk-rarity-filter' style='font-size:1.01rem;padding:2px 8px;border-radius:8px;'>
+          ${rarities.map(r => `<option value='${r}'>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`).join('')}
+        </select>
+      </div>
+      <div class='perk-cards-scroll' id='perk-cards-scroll' style='display:flex;overflow-x:auto;gap:18px;padding-top:20px;padding-bottom:20px;padding-left:10px;margin-bottom:10px;scroll-snap-type:x mandatory;'>
+        ${renderPerkCards()}
+      </div>
+      <div id='perk-store-msg' style='margin-top:2px;font-size:1.01rem;color:#b71c1c;min-height:22px;'></div>
+      <div style='margin-top:10px;'><button class='final-card-btn' id='perk-store-exit'>Exit Store</button></div>
+    </div>
+  `;
+  card.style.display = 'flex';
+  // Allow closing by clicking outside the card
+  card.onclick = function(e) {
+    if (e.target === card) card.style.display = 'none';
+  };
+  setTimeout(() => {
+    document.getElementById('perk-store-exit').onclick = () => { card.style.display = 'none'; };
+    // Rarity filter event
+    document.getElementById('perk-rarity-filter').onchange = function() {
+      selectedRarity = this.value;
+      document.getElementById('perk-cards-scroll').innerHTML = renderPerkCards();
+      // Re-attach buy button events after re-render
+      setTimeout(attachBuyEvents, 10);
+    };
+    function attachBuyEvents() {
+      document.querySelectorAll('.buy-perk-btn').forEach(btn => {
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          const perkId = btn.dataset.perk;
+          const price = parseInt(btn.dataset.price);
+          if (score < price) {
+            document.getElementById('perk-store-msg').textContent = 'Not enough points!';
+            return;
+          }
+          // Deduct points and activate perk
+          score -= price;
+          updateScore();
+          card.style.display = 'none';
+          const perk = PERKS.find(p => p.id === perkId);
+          if (perk && typeof perk.action === 'function') perk.action();
+        };
+      });
+    }
+    attachBuyEvents();
+  }, 50);
 }
+    // Perk Store button event
+    document.getElementById('perk-store').addEventListener('click', function() {
+      if (score > 0) showPerkStore();
+    });
 
     function renderWordsList() {
       const list = document.getElementById('words-list');
