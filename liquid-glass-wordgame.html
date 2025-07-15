@@ -874,9 +874,9 @@ function updateScore() {
   const scoreDiv = document.getElementById('score');
   const prev = parseInt(scoreDiv.textContent.replace(/\D/g, '')) || 0;
   scoreDiv.textContent = `Score: ${score}`;
-  // Enable/disable perk store button based on totalPoints
+  // Enable/disable perk store button based on in-game score
   const perkStoreBtn = document.getElementById('perk-store');
-  if (totalPoints > 0) {
+  if (score > 0) {
     perkStoreBtn.disabled = false;
     perkStoreBtn.style.opacity = 1;
     perkStoreBtn.style.pointerEvents = '';
