@@ -350,12 +350,14 @@
   <div class="container">
     <h1>Liquid Glass Word Game</h1>
     <div class="score" id="score" style="display:none">Score: 0</div>
+    <div class="score" id="total-points" style="margin-bottom:10px;">Total Points: 0</div>
     <div class="tiles" id="tiles" style="display:none"></div>
     <div class="recycle-bin" id="recycle-bin" title="Drag here to remove letter" style="display:none">♻️</div>
     <div class="actions">
       <button class="btn" id="submit-word" style="display:none">Submit Word</button>
       <button class="btn" id="give-up" style="display:none">Give Up</button>
       <button class="btn" id="perk-store" disabled style="">Perk Store</button>
+      <button class="btn" id="use-points" style="">Use Points for Next Round</button>
       <button class="btn" id="new-game">New Game</button>
     </div>
     <div class="words-list" id="words-list" style="display:none"></div>
@@ -388,10 +390,30 @@ function playPopSound({pitch=220, duration=0.11, volume=0.18, type='sine'} = {})
       'computer','keyboard','elephant','umbrella','sandwich','triangle','mountain','language','hospital','backpack','dinosaur','airplane','building','calendar','diamond','festival','galaxy','holiday','internet','jewelry','kangaroo','laughter','magazine','notebook','operator','painting','question','railroad','telescope','vacation','whistle','xylophone','zeppelin','planet','rocket','signal','window','yellow','orange','purple','circle','square','friend','school','pencil','eraser','bottle','camera','guitar','violin','rabbit','monkey','parrot','zebra','turtle','dragon','castle','forest','garden','island','jungle','kitten','laptop','mirror','napkin','ocean','pirate','quartz','rocket','safari','ticket','unicorn','violet','wallet','yogurt','zodiac','bridge','clouds','desert','energy','flower','gloves','hammer','igloo','jacket','kitten','ladder','magnet','needle','object','pillow','quiver','rocket','saddle','ticket','unicorn','valley','wallet','yellow','zebra'
     ];
 
-    let currentWord = '';
-    let tiles = [];
-    let foundWords = [];
-    let score = 0;
+let currentWord = '';
+let tiles = [];
+let foundWords = [];
+let score = 0; // in-game score (resets each round)
+let totalPoints = 0; // persistent score card
+
+// --- Persistent Total Points Storage ---
+const TOTAL_POINTS_KEY = 'liquidGlassWordGameTotalPoints';
+function loadTotalPoints() {
+  const val = localStorage.getItem(TOTAL_POINTS_KEY);
+  if (val !== null && !isNaN(parseInt(val))) {
+    totalPoints = parseInt(val);
+  } else {
+    totalPoints = 0;
+  }
+}
+function saveTotalPoints() {
+  localStorage.setItem(TOTAL_POINTS_KEY, totalPoints);
+}
+
+function updateTotalPointsDisplay() {
+  const totalDiv = document.getElementById('total-points');
+  if (totalDiv) totalDiv.textContent = `Total Points: ${totalPoints}`;
+}
     let draggingIdx = null;
     let gameOver = false;
     let gameStarted = false;
@@ -848,31 +870,30 @@ recycleBin.addEventListener('drop', (e) => {
   draggingIdx = null;
 });
 
-    function updateScore() {
-      const scoreDiv = document.getElementById('score');
-      const prev = parseInt(scoreDiv.textContent.replace(/\D/g, '')) || 0;
-      scoreDiv.textContent = `Score: ${score}`;
-      // Enable/disable perk store button
-      const perkStoreBtn = document.getElementById('perk-store');
-      if (score > 0) {
-        perkStoreBtn.disabled = false;
-        perkStoreBtn.style.opacity = 1;
-        perkStoreBtn.style.pointerEvents = '';
-      } else {
-        perkStoreBtn.disabled = true;
-        perkStoreBtn.style.opacity = 0.5;
-        perkStoreBtn.style.pointerEvents = 'none';
-      }
-      if (score > prev) {
-        scoreDiv.classList.remove('score-animate');
-        // Force reflow for restart animation
-        void scoreDiv.offsetWidth;
-        scoreDiv.classList.add('score-animate');
-        playPopSound({pitch: 540, duration: 0.13, volume: 0.22, type: 'triangle'});
-        // Remove animation class after animation ends
-        setTimeout(() => scoreDiv.classList.remove('score-animate'), 500);
-      }
-    }
+function updateScore() {
+  const scoreDiv = document.getElementById('score');
+  const prev = parseInt(scoreDiv.textContent.replace(/\D/g, '')) || 0;
+  scoreDiv.textContent = `Score: ${score}`;
+  // Enable/disable perk store button based on totalPoints
+  const perkStoreBtn = document.getElementById('perk-store');
+  if (totalPoints > 0) {
+    perkStoreBtn.disabled = false;
+    perkStoreBtn.style.opacity = 1;
+    perkStoreBtn.style.pointerEvents = '';
+  } else {
+    perkStoreBtn.disabled = true;
+    perkStoreBtn.style.opacity = 0.5;
+    perkStoreBtn.style.pointerEvents = 'none';
+  }
+  if (score > prev) {
+    scoreDiv.classList.remove('score-animate');
+    void scoreDiv.offsetWidth;
+    scoreDiv.classList.add('score-animate');
+    playPopSound({pitch: 540, duration: 0.13, volume: 0.22, type: 'triangle'});
+    setTimeout(() => scoreDiv.classList.remove('score-animate'), 500);
+  }
+  updateTotalPointsDisplay();
+}
 // --- Perk Store ---
 const PERK_PRICES = {
   'common': 30,
@@ -1088,21 +1109,27 @@ async function submitWord() {
   }
 }
 
-    function showFinalCard(message) {
-      const card = document.getElementById('final-card');
-      card.innerHTML = `<div class="final-card-inner">
-        <div class="final-card-title">${message}</div>
-        <div class="final-card-score">Final Score: <b>${score}</b></div>
-        <button class="final-card-btn" id="final-new-game">New Game</button>
-      </div>`;
-      card.style.display = 'flex';
-      setTimeout(() => {
-        document.getElementById('final-new-game').onclick = () => {
-          card.style.display = 'none';
-          enableNewGame();
-        };
-      }, 50);
-    }
+function showFinalCard(message) {
+  // At end of round, add in-game score to totalPoints
+  if (score > 0) {
+    totalPoints += score;
+    saveTotalPoints();
+    updateTotalPointsDisplay();
+  }
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class="final-card-inner">
+    <div class="final-card-title">${message}</div>
+    <div class="final-card-score">Final Score: <b>${score}</b></div>
+    <button class="final-card-btn" id="final-new-game">New Game</button>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    document.getElementById('final-new-game').onclick = () => {
+      card.style.display = 'none';
+      enableNewGame();
+    };
+  }, 50);
+}
 
     function checkGameOver() {
       if (tiles.length === 0) {
@@ -1119,11 +1146,11 @@ async function submitWord() {
       hideGameUI();
     }
 
-function newGame() {
+function newGame(startingScore = 0) {
   currentWord = pickRandomWord();
   tiles = currentWord.split('');
   foundWords = [];
-  score = 0;
+  score = startingScore || 0; // Reset in-game score, or use user-selected amount
   gameOver = false;
   gameStarted = true;
   validWordsThisRound = 0;
@@ -1142,6 +1169,10 @@ function newGame() {
       document.getElementById('submit-word').style.display = '';
       document.getElementById('give-up').style.display = '';
       document.getElementById('words-list').style.display = '';
+      document.getElementById('use-points').style.display = 'none'; // Hide use-points button during game
+      document.getElementById('new-game').style.display = 'none'; // Hide new-game button during game
+      document.getElementById('total-points').style.display = 'none'; // Hide total points during game
+      document.getElementById('perk-store').style.display = ''; // show perk store button
     }
     function hideGameUI() {
       document.getElementById('score').style.display = 'none';
@@ -1150,6 +1181,10 @@ function newGame() {
       document.getElementById('submit-word').style.display = 'none';
       document.getElementById('give-up').style.display = 'none';
       document.getElementById('words-list').style.display = 'none';
+      document.getElementById('use-points').style.display = ''; // Show use-points button on start screen
+      document.getElementById('new-game').style.display = ''; // Show new-game button on start screen
+      document.getElementById('total-points').style.display = ''; // Show total points on start screen
+      document.getElementById('perk-store').style.display = 'none'; // Hide perk store button on start screen
     }
     function disableNewGame() {
       const btn = document.getElementById('new-game');
@@ -1169,10 +1204,55 @@ function newGame() {
     document.getElementById('submit-word').addEventListener('click', submitWord);
     document.getElementById('give-up').addEventListener('click', giveUp);
     document.getElementById('new-game').addEventListener('click', function() {
-      if (!gameStarted) newGame();
+      if (!gameStarted) newGame(selectedStartingScore);
     });
-    // On load, hide game UI, enable new game
+
+    // --- Use Points for Next Round Button ---
+    let selectedStartingScore = 0;
+    document.getElementById('use-points').addEventListener('click', function() {
+      if (gameStarted) return;
+      // Show modal to select amount
+      const card = document.getElementById('final-card');
+      card.innerHTML = `<div class='final-card-inner'>
+        <div class='final-card-title'>Use Points for Next Round</div>
+        <div style='margin-bottom:10px;'>You have <b>${totalPoints}</b> points.</div>
+        <div style='margin-bottom:10px;'>
+          <label for='starting-score-input'>Points to use as starting score:</label><br>
+          <input type='number' id='starting-score-input' min='0' max='${totalPoints}' value='0' style='font-size:1.1rem;padding:4px 10px;border-radius:8px;width:90px;text-align:center;'>
+        </div>
+        <div id='use-points-msg' style='color:#b71c1c;font-size:1.01rem;min-height:18px;'></div>
+        <div style='margin-top:10px;display:flex;gap:10px;justify-content:center;'>
+          <button class='final-card-btn' id='use-points-confirm'>Confirm</button>
+          <button class='final-card-btn' id='use-points-cancel'>Cancel</button>
+        </div>
+      </div>`;
+      card.style.display = 'flex';
+      setTimeout(() => {
+        const input = document.getElementById('starting-score-input');
+        input.focus();
+        document.getElementById('use-points-confirm').onclick = () => {
+          let val = parseInt(input.value);
+          if (isNaN(val) || val < 0) val = 0;
+          if (val > totalPoints) {
+            document.getElementById('use-points-msg').textContent = 'Not enough points!';
+            return;
+          }
+          selectedStartingScore = val;
+          totalPoints -= val;
+          saveTotalPoints();
+          updateTotalPointsDisplay();
+          card.style.display = 'none';
+        };
+        document.getElementById('use-points-cancel').onclick = () => {
+          card.style.display = 'none';
+        };
+      }, 50);
+    });
+
+    // On load, hide game UI, enable new game, load total points
     window.onload = function() {
+      loadTotalPoints();
+      updateTotalPointsDisplay();
       hideGameUI();
       enableNewGame();
     };
