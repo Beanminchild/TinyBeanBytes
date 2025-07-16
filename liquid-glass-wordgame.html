@@ -1121,8 +1121,21 @@ function showPerkStore() {
   ];
   let selectedRarity = 'all';
 
+  // Define rarity order
+  const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'rainbow'];
+  function getRarityIndex(r) {
+    const idx = rarityOrder.indexOf(r);
+    return idx === -1 ? 999 : idx;
+  }
   function renderPerkCards() {
-    const perksToShow = selectedRarity === 'all' ? PERKS : PERKS.filter(p => p.rarity === selectedRarity);
+    let perksToShow = selectedRarity === 'all' ? PERKS.slice() : PERKS.filter(p => p.rarity === selectedRarity);
+    // Sort by rarity order, then by name
+    perksToShow.sort((a, b) => {
+      const ra = getRarityIndex(a.rarity);
+      const rb = getRarityIndex(b.rarity);
+      if (ra !== rb) return ra - rb;
+      return a.name.localeCompare(b.name);
+    });
     return perksToShow.map(perk => {
       const price = PERK_PRICES[perk.rarity] || 100;
       return `<div class='perk-card ${(perk.rarity ? 'perk-glow-' + perk.rarity : '')}' style='min-width:140px;max-width:180px;position:relative;opacity:${score >= price ? 1 : 0.5};scroll-snap-align:center;'>
@@ -1324,13 +1337,101 @@ function showFinalCard(message) {
     updateTotalPointsDisplay();
   }
   const card = document.getElementById('final-card');
+  // Words solved animation container
+  const wordsCount = foundWords.length;
   card.innerHTML = `<div class="final-card-inner">
     <div class="final-card-title">${message}</div>
-    <div class="final-card-score">Final Score: <b>${score}</b></div>
+    <div style="margin-bottom:12px;">
+      <span id="final-words-anim-container" style="display:inline-block;position:relative;min-width:60px;">
+        <span id="final-words-count" style="font-size:1.5rem;font-weight:700;color:#1976d2;">0</span>
+      </span>
+      <span style="font-size:1.1rem;color:#1976d2;"> words solved</span>
+    </div>
+    <div class="final-card-score" style="margin-bottom:24px;">
+      Final Score: <b id="final-score-anim">0</b>
+    </div>
+    <div id="final-words-list" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:10px;"></div>
     <button class="final-card-btn" id="final-new-game">New Game</button>
   </div>`;
   card.style.display = 'flex';
   playPopSound({pitch: 540, duration: 0.13, volume: 0.22, type: 'triangle'});
+
+
+  // Animate words flying into the count, then animate score
+  setTimeout(() => {
+    const wordsListDiv = document.getElementById('final-words-list');
+    const countSpan = document.getElementById('final-words-count');
+    let currentCount = 0;
+    let lastWordAnimTime = 0;
+    foundWords.forEach((w, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'word-chip';
+      chip.textContent = w;
+      chip.style.opacity = '0';
+      chip.style.transform = 'scale(0.7) translateY(20px)';
+      chip.style.transition = 'opacity 0.3s, transform 0.3s';
+      wordsListDiv.appendChild(chip);
+      const appearDelay = 100 + i * 180;
+      const flyDelay = 400 + i * 80;
+      lastWordAnimTime = appearDelay + flyDelay + 500; // 500ms for fly duration
+      setTimeout(() => {
+        chip.style.opacity = '1';
+        chip.style.transform = 'scale(1) translateY(0)';
+        playPopSound({pitch: 320 + Math.random()*80, duration: 0.10, volume: 0.16, type: 'triangle'});
+        // Animate flying into the count
+        setTimeout(() => {
+          const rect1 = chip.getBoundingClientRect();
+          const rect2 = countSpan.getBoundingClientRect();
+          const dx = rect2.left - rect1.left;
+          const dy = rect2.top - rect1.top;
+          chip.style.transition = 'transform 0.5s cubic-bezier(.23,1.12,.62,1.01), opacity 0.5s';
+          chip.style.transform = `translate(${dx}px,${dy}px) scale(0.3)`;
+          chip.style.opacity = '0';
+          setTimeout(() => {
+            chip.remove();
+            currentCount++;
+            countSpan.textContent = currentCount;
+            playPopSound({pitch: 420 + Math.random()*60, duration: 0.09, volume: 0.13, type: 'triangle'});
+          }, 500);
+        }, flyDelay);
+      }, appearDelay);
+    });
+    // If no words, just set count and animate score immediately
+    if (foundWords.length === 0) {
+      countSpan.textContent = '0';
+      animateScoreCountUp();
+    } else {
+      setTimeout(animateScoreCountUp, lastWordAnimTime + 100);
+    }
+    function animateScoreCountUp() {
+      const scoreSpan = document.getElementById('final-score-anim');
+      let displayScore = 0;
+      const increment = Math.max(1, Math.floor(score / 40));
+      // Pentatonic scale (C major): C D E G A (MIDI: 60, 62, 64, 67, 69)
+      const pentatonic = [261.63, 293.66, 329.63, 392.00, 440.00];
+      let noteIdx = 0;
+      function animateScore() {
+        if (displayScore < score) {
+          displayScore += increment;
+          if (displayScore > score) displayScore = score;
+          scoreSpan.textContent = displayScore;
+          // Cycle through pentatonic notes for harmony
+          playPopSound({
+            pitch: pentatonic[noteIdx % pentatonic.length] * (1 + Math.floor(noteIdx / pentatonic.length) * 0.08),
+            duration: 0.09,
+            volume: 0.13,
+            type: 'sine'
+          });
+          noteIdx++;
+          setTimeout(animateScore, 18);
+        } else {
+          scoreSpan.textContent = score;
+        }
+      }
+      animateScore();
+    }
+  }, 100);
+
   setTimeout(() => {
     document.getElementById('final-new-game').onclick = () => {
       playPopSound({pitch: 320, duration: 0.10, volume: 0.16, type: 'triangle'});
@@ -1371,6 +1472,7 @@ function newGame(startingScore = 0) {
   renderWordsList();
   showGameUI();
   disableNewGame();
+  selectedStartingScore = 0; // Reset after use so next game starts at 0 unless user picks again
 }
 
     function showGameUI() {
