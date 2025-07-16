@@ -3,18 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Liquid Glass Word Game</title>
+  <title>lingo leaps</title>
   <style>
     body {
       margin: 0;
       padding: 0;
       min-height: 100vh;
-      background: linear-gradient(135deg, #e0e7ef 0%, #c9d6ff 100%);
+      background: radial-gradient(circle at 50% 50%,
+        #e0e7ef 0%,
+        #c9d6ff 20%,
+        #b7eaff 35%,
+        #abc4eb 50%,
+        #e0e7ef 60%,
+        #b8e1fc 75%,
+        #b6f0e6 82%,
+        #c2f7cb 89%,
+        #e0f7ef 95%,
+        #e0e7ef 100%
+      );
+      background-size: 200% 200%;
+      animation: gradientBG 24s linear infinite;
       font-family: 'San Francisco', 'Segoe UI', Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
+    }
+
+    @keyframes gradientBG {
+      0% {
+        background-position: 50% 0%;
+      }
+      50% {
+        background-position: 50% 100%;
+      }
+      100% {
+        background-position: 50% 0%;
+      }
     }
     .container {
       width: 100vw;
@@ -348,7 +373,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>Liquid Glass Word Game</h1>
+    <h1>Lingo Leaps</h1>
     <div class="score" id="score" style="display:none">Score: 0</div>
     <div class="score" id="total-points" style="margin-bottom:10px;">Total Points: 0</div>
     <div class="tiles" id="tiles" style="display:none"></div>
@@ -1209,7 +1234,8 @@ function newGame(startingScore = 0) {
 
     // --- Use Points for Next Round Button ---
     let selectedStartingScore = 0;
-    document.getElementById('use-points').addEventListener('click', function() {
+    document.getElementById('total-points').addEventListener('click', function() {
+    
       if (gameStarted) return;
       // Show modal to select amount
       const card = document.getElementById('final-card');
