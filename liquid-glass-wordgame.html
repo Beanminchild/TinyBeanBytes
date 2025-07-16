@@ -382,7 +382,7 @@
       <button class="btn" id="submit-word" style="display:none">Submit Word</button>
       <button class="btn" id="give-up" style="display:none">Give Up</button>
       <button class="btn" id="perk-store" disabled style="">Perk Store</button>
-      <button class="btn" id="use-points" style="">Use Points for Next Round</button>
+      <button class="btn" id="use-points" style="display:none">Use Points for Next Round</button>
       <button class="btn" id="new-game">New Game</button>
     </div>
     <div class="words-list" id="words-list" style="display:none"></div>
@@ -456,10 +456,10 @@ const PERKS = [
   },
   {
     id: 'restore-discarded',
-    name: 'Restore Discarded',
-    desc: 'Restore any letters you threw away this round.',
+    name: 'Restore Discarded++',
+    desc: 'Restore any letters you threw away. Ever.',
     action: showRestoreDiscardedPerk,
-    rarity: 'uncommon' // green
+    rarity: 'epic' // green
   },
   {
     id: 'reshuffle-word',
@@ -469,14 +469,178 @@ const PERKS = [
     rarity: 'epic' // purple
   },
   {
+    id: 'add-ing',
+    name: 'Add ING',
+    desc: 'Add the letters I, N, and G to your tiles.',
+    action: showAddINGPerk,
+    rarity: 'rare' // blue
+  },
+  {
+    id: 'restore-one-last5',
+    name: 'Restore Discarded',
+    desc: 'Pick one letter to restore from your last 5 discarded.',
+    action: showRestoreOneLast5Perk,
+    rarity: 'common' // white
+  },
+  {
     id: 'pluralize',
     name: 'Pluralize',
     desc: 'Add an S, or E and S, to make your word plural.',
     action: showPluralizePerk,
     rarity: 'common' // white
+  },
+  {
+    id: 'restore-discarded-plus',
+    name: 'Restore Discarded +',
+    desc: 'Restore up to 5 letters you have discarded.',
+    action: showRestoreDiscardedPlusPerk,
+    rarity: 'epic' // green
   }
   // Add more perks with rarity as needed
 ];
+// --- Restore Discarded Plus Perk Action ---
+function showRestoreDiscardedPlusPerk() {
+  if (discardedTiles.length === 0) {
+    showPerkInfo('No discarded letters to restore!');
+    return;
+  }
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Restore Discarded +</div>
+    <div style='margin-bottom:10px;'>Pick up to 5 letters to restore:</div>
+    <div style='display:flex;gap:12px;justify-content:center;margin:18px 0;flex-wrap:wrap;'>
+      ${discardedTiles.map((l,i) => `<div class='perk-letter' data-idx='${i}' tabindex='0' style='width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;background:rgba(255,255,255,0.7);border-radius:14px;box-shadow:0 2px 8px #b0c4de33;cursor:pointer;transition:background 0.15s;outline:2px solid transparent;'>${l}</div>`).join('')}
+    </div>
+    <div id='perk-restore-plus-msg' style='margin-top:8px;font-size:0.98rem;color:#1976d2;'></div>
+    <div style='margin-top:10px;display:flex;gap:10px;justify-content:center;'>
+      <button class='final-card-btn' id='perk-restore-plus'>Restore Selected</button>
+      <button class='final-card-btn' id='perk-cancel-plus'>Cancel</button>
+    </div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    const selected = new Set();
+    const updateMsg = () => {
+      const msg = document.getElementById('perk-restore-plus-msg');
+      if (selected.size === 0) {
+        msg.textContent = 'Select up to 5 letters to restore.';
+      } else {
+        msg.textContent = `${selected.size} letter${selected.size > 1 ? 's' : ''} selected.`;
+      }
+    };
+    document.querySelectorAll('.perk-letter').forEach(el => {
+      el.onclick = () => {
+        const idx = parseInt(el.dataset.idx);
+        if (selected.has(idx)) {
+          selected.delete(idx);
+          el.style.outline = '2px solid transparent';
+          el.style.background = 'rgba(255,255,255,0.7)';
+        } else {
+          if (selected.size >= 5) return;
+          selected.add(idx);
+          el.style.outline = '2.5px solid #1976d2';
+          el.style.background = 'rgba(224,247,250,0.7)';
+        }
+        updateMsg();
+      };
+      el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') el.click(); };
+    });
+    document.getElementById('perk-restore-plus').onclick = () => {
+      if (selected.size === 0) {
+        document.getElementById('perk-restore-plus-msg').textContent = 'Please select at least one letter.';
+        return;
+      }
+      // Restore all selected (up to 5)
+      // Sort descending so we can splice safely
+      const idxs = Array.from(selected).sort((a,b) => b-a);
+      idxs.forEach(idx => {
+        tiles.push(discardedTiles[idx]);
+        discardedTiles.splice(idx,1);
+      });
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-cancel-plus').onclick = () => { card.style.display = 'none'; };
+    updateMsg();
+  }, 50);
+}
+
+// --- Restore One of Last 5 Discarded Perk Action ---
+function showRestoreOneLast5Perk() {
+  const last5 = discardedTiles.slice(-5);
+  if (last5.length === 0) {
+    showPerkInfo('No discarded letters to restore!');
+    return;
+  }
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Restore 1 of Last 5</div>
+    <div style='margin-bottom:10px;'>Pick one letter to restore:</div>
+    <div style='display:flex;gap:12px;justify-content:center;margin:18px 0;flex-wrap:wrap;'>
+      ${last5.map((l,i) => `<div class='perk-letter' data-idx='${i}' tabindex='0' style='width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;background:rgba(255,255,255,0.7);border-radius:14px;box-shadow:0 2px 8px #b0c4de33;cursor:pointer;transition:background 0.15s;outline:2px solid transparent;'>${l}</div>`).join('')}
+    </div>
+    <div id='perk-restore-msg' style='margin-top:8px;font-size:0.98rem;color:#1976d2;'></div>
+    <div style='margin-top:10px;display:flex;gap:10px;justify-content:center;'>
+      <button class='final-card-btn' id='perk-restore-one'>Restore Selected</button>
+      <button class='final-card-btn' id='perk-cancel'>Cancel</button>
+    </div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    let selected = null;
+    document.querySelectorAll('.perk-letter').forEach(el => {
+      el.onclick = () => {
+        document.querySelectorAll('.perk-letter').forEach(e2 => {
+          e2.style.outline = '2px solid transparent';
+          e2.style.background = 'rgba(255,255,255,0.7)';
+        });
+        el.style.outline = '2.5px solid #1976d2';
+        el.style.background = 'rgba(224,247,250,0.7)';
+        selected = parseInt(el.dataset.idx);
+        document.getElementById('perk-restore-msg').textContent = 'Selected letter: ' + last5[selected];
+      };
+      el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') el.click(); };
+    });
+    document.getElementById('perk-restore-one').onclick = () => {
+      if (selected === null) {
+        document.getElementById('perk-restore-msg').textContent = 'Please select a letter.';
+        return;
+      }
+      // Find the index in discardedTiles (from the end)
+      const globalIdx = discardedTiles.length - last5.length + selected;
+      tiles.push(discardedTiles[globalIdx]);
+      discardedTiles.splice(globalIdx, 1);
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-cancel').onclick = () => { card.style.display = 'none'; };
+  }, 50);
+}
+
+// --- Add ING Perk Action ---
+function showAddINGPerk() {
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Add ING</div>
+    <div style='margin:18px 0;'>Add the letters <b>I</b>, <b>N</b>, and <b>G</b> to your tiles?</div>
+    <div style='display:flex;gap:18px;justify-content:center;margin:18px 0;'>
+      <button class='final-card-btn' id='perk-add-ing-confirm'>Add ING</button>
+      <button class='final-card-btn' id='perk-add-ing-cancel'>Cancel</button>
+    </div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    document.getElementById('perk-add-ing-confirm').onclick = () => {
+      tiles.push('I', 'N', 'G');
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-add-ing-cancel').onclick = () => { card.style.display = 'none'; };
+  }, 50);
+}
 // --- Pluralize Perk Action ---
 function showPluralizePerk() {
   const card = document.getElementById('final-card');
@@ -544,9 +708,11 @@ function showPerkSelection() {
     </div>
   </div>`;
   card.style.display = 'flex';
+  playPopSound({pitch: 350, duration: 0.10, volume: 0.15, type: 'triangle'});
   setTimeout(() => {
     document.querySelectorAll('.perk-card').forEach(el => {
       el.onclick = () => {
+        playPopSound({pitch: 480, duration: 0.10, volume: 0.16, type: 'triangle'});
         card.style.display = 'none';
         const perk = PERKS.find(p => p.id === el.dataset.perk);
         if (perk && typeof perk.action === 'function') perk.action();
@@ -663,8 +829,12 @@ function showPerkInfo(msg) {
     <div style='margin-top:10px;'><button class='final-card-btn' id='perk-ok'>OK</button></div>
   </div>`;
   card.style.display = 'flex';
+  playPopSound({pitch: 350, duration: 0.10, volume: 0.15, type: 'triangle'});
   setTimeout(() => {
-    document.getElementById('perk-ok').onclick = () => { card.style.display = 'none'; };
+    document.getElementById('perk-ok').onclick = () => { 
+      playPopSound({pitch: 220, duration: 0.09, volume: 0.13, type: 'triangle'});
+      card.style.display = 'none'; 
+    };
   }, 50);
 }
 
@@ -729,6 +899,8 @@ function handleTouchStart(e, idx) {
   // Do not change origTile opacity
   touchOverIdx = null;
   document.body.style.touchAction = 'none';
+  // Play pickup sound for touch
+  playPopSound({pitch: 180 + Math.random()*20, duration: 0.10, volume: 0.16, type: 'sine'});
 }
 
 function handleTouchMove(e, idx) {
@@ -832,6 +1004,8 @@ function handleTouchEnd(e, idx) {
     if (startIdx >= 0 && startIdx < tiles.length && finalTargetIdx >= 0 && finalTargetIdx < tiles.length) {
       [tiles[startIdx], tiles[finalTargetIdx]] = [tiles[finalTargetIdx], tiles[startIdx]];
       renderTiles();
+      // Deeper, more pleasing drop sound for touch
+      playPopSound({pitch: 140 + Math.random()*20, duration: 0.14, volume: 0.19, type: 'triangle'});
     }
   }
   touchStartIdx = null;
@@ -846,6 +1020,8 @@ function handleDragStart(e, idx) {
   draggingIdx = idx;
   e.dataTransfer.effectAllowed = 'move';
   e.target.classList.add('dragging');
+  // Play pickup sound
+  playPopSound({pitch: 180 + Math.random()*20, duration: 0.10, volume: 0.16, type: 'sine'});
 }
 function handleDragOver(e, idx) {
   if (gameOver) return;
@@ -861,6 +1037,8 @@ function handleDrop(e, idx) {
     // Swap
     [tiles[draggingIdx], tiles[idx]] = [tiles[idx], tiles[draggingIdx]];
     renderTiles();
+    // Deeper, more pleasing drop sound
+    playPopSound({pitch: 140 + Math.random()*20, duration: 0.14, volume: 0.19, type: 'triangle'});
   }
   e.target.classList.remove('over');
   draggingIdx = null;
@@ -890,6 +1068,10 @@ recycleBin.addEventListener('drop', (e) => {
     tiles.splice(draggingIdx, 1);
     renderTiles();
     checkGameOver();
+    playPopSound({pitch: 420, duration: 0.09, volume: 0.14, type: 'triangle'});
+    setTimeout(() => {
+      playPopSound({pitch: 220, duration: 0.11, volume: 0.11, type: 'triangle'});
+    }, 55);
   }
   recycleBin.classList.remove('over');
   draggingIdx = null;
@@ -1148,8 +1330,10 @@ function showFinalCard(message) {
     <button class="final-card-btn" id="final-new-game">New Game</button>
   </div>`;
   card.style.display = 'flex';
+  playPopSound({pitch: 540, duration: 0.13, volume: 0.22, type: 'triangle'});
   setTimeout(() => {
     document.getElementById('final-new-game').onclick = () => {
+      playPopSound({pitch: 320, duration: 0.10, volume: 0.16, type: 'triangle'});
       card.style.display = 'none';
       enableNewGame();
     };
@@ -1167,11 +1351,13 @@ function showFinalCard(message) {
     function giveUp() {
       if (gameOver) return;
       gameOver = true;
+      playPopSound({pitch: 180, duration: 0.13, volume: 0.18, type: 'triangle'});
       showFinalCard('You gave up!');
       hideGameUI();
     }
 
 function newGame(startingScore = 0) {
+  playPopSound({pitch: 420, duration: 0.13, volume: 0.18, type: 'triangle'});
   currentWord = pickRandomWord();
   tiles = currentWord.split('');
   foundWords = [];
@@ -1206,7 +1392,7 @@ function newGame(startingScore = 0) {
       document.getElementById('submit-word').style.display = 'none';
       document.getElementById('give-up').style.display = 'none';
       document.getElementById('words-list').style.display = 'none';
-      document.getElementById('use-points').style.display = ''; // Show use-points button on start screen
+      document.getElementById('use-points').style.display = 'none'; // Show use-points button on start screen
       document.getElementById('new-game').style.display = ''; // Show new-game button on start screen
       document.getElementById('total-points').style.display = ''; // Show total points on start screen
       document.getElementById('perk-store').style.display = 'none'; // Hide perk store button on start screen
@@ -1253,6 +1439,7 @@ function newGame(startingScore = 0) {
         </div>
       </div>`;
       card.style.display = 'flex';
+      playPopSound({pitch: 350, duration: 0.10, volume: 0.15, type: 'triangle'});
       setTimeout(() => {
         const input = document.getElementById('starting-score-input');
         input.focus();
@@ -1260,9 +1447,11 @@ function newGame(startingScore = 0) {
           let val = parseInt(input.value);
           if (isNaN(val) || val < 0) val = 0;
           if (val > totalPoints) {
+            playPopSound({pitch: 120, duration: 0.10, volume: 0.16, type: 'square'});
             document.getElementById('use-points-msg').textContent = 'Not enough points!';
             return;
           }
+          playPopSound({pitch: 420, duration: 0.13, volume: 0.18, type: 'triangle'});
           selectedStartingScore = val;
           totalPoints -= val;
           saveTotalPoints();
@@ -1270,6 +1459,7 @@ function newGame(startingScore = 0) {
           card.style.display = 'none';
         };
         document.getElementById('use-points-cancel').onclick = () => {
+          playPopSound({pitch: 220, duration: 0.09, volume: 0.13, type: 'triangle'});
           card.style.display = 'none';
         };
       }, 50);
