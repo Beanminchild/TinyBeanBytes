@@ -42,15 +42,28 @@
       }
     }
     .container {
-      width: 100vw;
-      max-width: 420px;
-      margin: 0 auto;
-      padding: 24px 8px 8px 8px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+  width: 100vw;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 24px 8px 8px 8px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh; /* Add this */
+  justify-content: flex-start; /* Default for desktop */
+}
+.home-align-center {
+  justify-content: center !important;
+}
+
+/* Add this media query at the end of your <style> block */
+@media (max-width: 600px) {
+  .container {
+    justify-content: flex-end; /* Push content to bottom on mobile */
+    padding-bottom: 24px;      /* Add some space from the bottom */
+  }
+}
     h1 {
       font-weight: 700;
       font-size: 2.2rem;
@@ -597,18 +610,18 @@ const PERKS = [
     name: 'Add a Letter',
     desc: 'Add a letter of your choice from a 3x3 grid.',
     action: showAddLetterPerk,
-    rarity: 'rare' // blue
+    rarity: 'common' // white
   },
   {
     id: 'restore-discarded',
-    name: 'Restore Discarded++',
+    name: 'Restore Recycled ++',
     desc: 'Restore any letters you threw away. Ever.',
     action: showRestoreDiscardedPerk,
-    rarity: 'epic' // green
+    rarity: 'epic' 
   },
   {
     id: 'reshuffle-word',
-    name: 'New Word',
+    name: 'Start Fresh',
     desc: 'Get a new word, but keep your progress and score.',
     action: showReshuffleWordPerk,
     rarity: 'epic' // purple
@@ -622,7 +635,7 @@ const PERKS = [
   },
   {
     id: 'restore-one-last5',
-    name: 'Restore Discarded',
+    name: 'Restore Recycled',
     desc: 'Pick one letter to restore from your last 5 discarded.',
     action: showRestoreOneLast5Perk,
     rarity: 'common' // white
@@ -632,11 +645,12 @@ const PERKS = [
     name: 'Pluralize',
     desc: 'Add an S, or E and S, to make your word plural.',
     action: showPluralizePerk,
-    rarity: 'common' // white
+    rarity: 'rare' // white
   },
+  
   {
     id: 'restore-discarded-plus',
-    name: 'Restore Discarded +',
+    name: 'Restore Recycled +',
     desc: 'Restore up to 5 letters you have discarded.',
     action: showRestoreDiscardedPlusPerk,
     rarity: 'epic' // green
@@ -1828,6 +1842,8 @@ function newGame(startingScore = 0) {
       document.getElementById('total-points').style.display = 'none'; // Hide total points during game
       document.getElementById('perk-store').style.display = ''; // show perk store button
       document.getElementById('dictionary-btn').style.display = 'none'; // Hide dictionary button during game
+      // Remove home-align-center when game starts
+      document.querySelector('.container').classList.remove('home-align-center');
     }
     function hideGameUI() {
       document.getElementById('score').style.display = 'none';
@@ -1841,6 +1857,7 @@ function newGame(startingScore = 0) {
       document.getElementById('total-points').style.display = ''; // Show total points on start screen
       document.getElementById('perk-store').style.display = 'none'; // Hide perk store button on start screen
       document.getElementById('dictionary-btn').style.display = ''; // Show dictionary button on home screen
+      document.querySelector('.container').classList.add('home-align-center'); // Center align home screen
     }
     function disableNewGame() {
       const btn = document.getElementById('new-game');
