@@ -342,6 +342,16 @@
   background-size: 200% 200%;
   animation: phoenixFireBG 12s linear infinite;
 }
+.fire-sale-bg {
+  background: linear-gradient(135deg, #ffd700 0%,#ecbd3a 50%,#d4d194 75%, #c9c9c1 100%);
+  background-size: 200% 200%;
+  animation: fireSaleBG 8s linear infinite;
+}
+@keyframes fireSaleBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 
 @keyframes phoenixFireBG {
   0% { background-position: 50% 0%; filter: brightness(1.1) saturate(1.2);}
@@ -565,15 +575,23 @@ function updateTotalPointsDisplay() {
 let validWordsThisRound = 0;
 let discardedTiles = [];
 let phoenixFlameActive = false; 
+let fireSaleTurnsLeft = 0;
 // --- Perk System ---
 const PERKS = [
   {
     id: 'legendary-perk',
     name: 'Phoenix Flame',
-    desc: 'Throw away all your letters and rise from the ashes with any word you have previously unlocked!',
+    desc: 'Throw away your letters to rise from the ashes with any word in your dictonary.(Has no effect on Galuf)',
     action: activatePhoenixFlame,
     rarity: 'legendary' // goldish fire orange
   },
+  {
+  id: 'fire-sale',
+  name: 'Fire Sale',
+  desc: 'FIRE SALE! all perks 50% off. (Its free real estate)',
+  action: activateFireSale,
+  rarity: 'legendary'
+},
   {
     id: 'add-letter',
     name: 'Add a Letter',
@@ -692,7 +710,13 @@ function showRestoreDiscardedPlusPerk() {
     updateMsg();
   }, 50);
 }
-
+// ...existing code...
+function activateFireSale() {
+  fireSaleTurnsLeft = 3;
+  document.body.classList.add('fire-sale-bg'); // Add this line
+  showPerkInfo('Fire Sale activated! All perks are 50% off for your next 3 turns.');
+}
+// ...existing code...
 
 
 // Phoenix Flame activation function
@@ -1390,7 +1414,8 @@ function showPerkStore() {
       return a.name.localeCompare(b.name);
     });
     return perksToShow.map(perk => {
-      const price = PERK_PRICES[perk.rarity] || 100;
+      let price = PERK_PRICES[perk.rarity] || 100;
+      if (fireSaleTurnsLeft > 0) price = Math.ceil(price / 2);
       return `<div class='perk-card ${(perk.rarity ? 'perk-glow-' + perk.rarity : '')}' style='min-width:140px;max-width:180px;position:relative;opacity:${score >= price ? 1 : 0.5};scroll-snap-align:center;'>
         <div class='perk-card-name'>${perk.name}</div>
         <div class='perk-card-desc'>${perk.desc}</div>
@@ -1563,6 +1588,13 @@ async function submitWord() {
       renderWordsList();
       tileEls.forEach(tile => tile.classList.remove('valid-glow'));
       validWordsThisRound++;
+      if (fireSaleTurnsLeft > 0) {
+          fireSaleTurnsLeft--;
+          if (fireSaleTurnsLeft === 0) {
+          document.body.classList.remove('fire-sale-bg'); // Add this line
+          showPerkInfo('Fire Sale has ended!');
+        }
+      }
       if (!maybeShowPerk()) {
         // Only check game over if not showing perk
         checkGameOver();
