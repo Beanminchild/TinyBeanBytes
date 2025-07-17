@@ -21,7 +21,35 @@ function renderWordArea(word) {
     tile.textContent = ch;
     tile.draggable = true;
     tile.dataset.index = idx;
-    // TODO: Add drag event listeners
+    // Drag and drop event listeners for swapping tiles
+    tile.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', idx);
+      tile.classList.add('dragging');
+    });
+    tile.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      tile.classList.add('drag-over');
+    });
+    tile.addEventListener('dragleave', (e) => {
+      tile.classList.remove('drag-over');
+    });
+    tile.addEventListener('drop', (e) => {
+      e.preventDefault();
+      tile.classList.remove('drag-over');
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      const toIdx = idx;
+      if (fromIdx !== toIdx) {
+        let wordArr = area.querySelectorAll('.tile');
+        let chars = Array.from(wordArr).map(t => t.textContent);
+        // Swap the characters
+        [chars[fromIdx], chars[toIdx]] = [chars[toIdx], chars[fromIdx]];
+        renderWordArea(chars.join(''));
+      }
+    });
+    tile.addEventListener('dragend', (e) => {
+      tile.classList.remove('dragging');
+      area.querySelectorAll('.tile').forEach(t => t.classList.remove('drag-over'));
+    });
     area.appendChild(tile);
   });
 }

@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collectionary!</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% 50%,
+        #e0e7ef 0%,
+        #c9d6ff 20%,
+        #b7eaff 35%,
+        #abc4eb 50%,
+        #e0e7ef 60%,
+        #b8e1fc 75%,
+        #b6f0e6 82%,
+        #c2f7cb 89%,
+        #e0f7ef 95%,
+        #e0e7ef 100%
+      );
+      background-size: 200% 200%;
+      animation: gradientBG 24s linear infinite;
+      font-family: 'San Francisco', 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    @keyframes gradientBG {
+      0% {
+        background-position: 50% 0%;
+      }
+      50% {
+        background-position: 50% 100%;
+      }
+      100% {
+        background-position: 50% 0%;
+      }
+    }
+    .container {
+  width: 100vw;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 24px 8px 8px 8px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh; /* Add this */
+  justify-content: flex-start; /* Default for desktop */
+}
+.home-align-center {
+  justify-content: center !important;
+}
+
+/* Add this media query at the end of your <style> block */
+@media (max-width: 600px) {
+  .container {
+    justify-content: flex-end; /* Push content to bottom on mobile */
+    padding-bottom: 24px;      /* Add some space from the bottom */
+  }
+}
+    h1 {
+      font-weight: 700;
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+      color: #222;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 8px #fff8;
+    }
+    .score {
+      font-size: 1.35rem;
+      color: #1976d2;
+      margin-bottom: 12px;
+      background: rgba(255,255,255,0.32);
+      border-radius: 18px;
+      box-shadow: 0 2px 12px #b0c4de33, 0 1.5px 0 #fff8 inset;
+      padding: 10px 32px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      backdrop-filter: blur(6px) saturate(1.1);
+      border: 1.5px solid rgba(255,255,255,0.5);
+      display: inline-block;
+      transition: box-shadow 0.18s, background 0.18s;
+      position: relative;
+      overflow: hidden;
+    }
+    .score.score-animate {
+      animation: scorePop 0.5s cubic-bezier(.23,1.12,.62,1.01);
+      box-shadow: 0 4px 24px #b0c4de77, 0 1.5px 0 #fff8 inset;
+      background: rgba(224,247,250,0.7);
+    }
+    @keyframes scorePop {
+      0% { transform: scale(1); }
+      30% { transform: scale(1.18) rotate(-2deg); }
+      60% { transform: scale(0.96) rotate(1deg); }
+      100% { transform: scale(1); }
+    }
+    .tiles {
+      display: flex;
+      gap: 12px;
+      margin: 18px 0 10px 0;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .tile {
+      width: 56px;
+      height: 56px;
+      border-radius: 22px;
+      background: rgba(255,255,255,0.25);
+      box-shadow: 0 4px 24px 0 #b0c4de44, 0 1.5px 0 #fff8 inset;
+      backdrop-filter: blur(8px) saturate(1.2);
+      border: 1.5px solid rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.1rem;
+      font-weight: 600;
+      color: #2a2a2a;
+      user-select: none;
+      transition: box-shadow 0.15s, transform 0.12s;
+      position: relative;
+      cursor: grab;
+      touch-action: none;
+    }
+    .tile.dragging {
+      opacity: 0.7;
+      box-shadow: 0 8px 32px 0 #b0c4de88, 0 1.5px 0 #fff8 inset;
+      z-index: 10;
+      transform: scale(1.08);
+    }
+    .tile.valid-glow {
+      box-shadow: 0 0 16px 4px #69f07a, 0 4px 24px 0 #b0c4de44, 0 1.5px 0 #fff8 inset;
+      background: rgba(180,255,200,0.38);
+      border-color: #69f07a;
+    }
+    .tile.invalid-glow {
+      box-shadow: 0 0 16px 4px #ff4d4d, 0 4px 24px 0 #b0c4de44, 0 1.5px 0 #fff8 inset;
+      background: rgba(255,180,180,0.38);
+      border-color: #ff4d4d;
+    }
+    .tile.hop {
+      animation: tileHop 0.38s cubic-bezier(.23,1.12,.62,1.01);
+    }
+    .tile.shake {
+      animation: tileShake 0.38s cubic-bezier(.36,1.56,.64,1);
+    }
+      /* Fire explosion effect for Phoenix Flame */
+@keyframes fire-explode {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.7) rotate(0deg);
+    filter: blur(0.5px) brightness(1.2);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.2) rotate(12deg);
+    filter: blur(1.5px) brightness(1.4);
+  }
+  70% {
+    opacity: 0.7;
+    transform: scale(1.5) rotate(-8deg);
+    filter: blur(2.5px) brightness(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1) rotate(0deg);
+    filter: blur(4px) brightness(0.7);
+  }
+}
+.fire-explosion {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 70px; height: 70px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  background: radial-gradient(circle at 50% 60%, #ff9800 0%, #ff5722 55%, #ffd700 80%, transparent 100%);
+  opacity: 0.8;
+  border-radius: 50%;
+  animation: fire-explode 0.7s cubic-bezier(.23,1.12,.62,1.01);
+  box-shadow: 0 0 32px 8px #ff9800aa, 0 0 64px 24px #ffd70055;
+}
+    @keyframes tileHop {
+      0% { transform: translateY(0); }
+      30% { transform: translateY(-22px) scale(1.08); }
+      60% { transform: translateY(0) scale(1); }
+      100% { transform: none; }
+    }
+    @keyframes tileShake {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-10px); }
+      40% { transform: translateX(10px); }
+      60% { transform: translateX(-7px); }
+      80% { transform: translateX(7px); }
+      100% { transform: translateX(0); }
+    }
+    .score.score-invalid {
+      box-shadow: 0 0 24px 4px #ff4d4d, 0 2px 12px #b0c4de33, 0 1.5px 0 #fff8 inset;
+      background: rgba(255,180,180,0.38);
+      color: #b71c1c;
+      animation: scoreInvalid 0.5s cubic-bezier(.36,1.56,.64,1);
+    }
+    @keyframes scoreInvalid {
+      0% { transform: scale(1); }
+      20% { transform: scale(1.08) rotate(-2deg); }
+      40% { transform: scale(0.96) rotate(2deg); }
+      100% { transform: scale(1); }
+    }
+    .tile-fly {
+      position: fixed;
+      z-index: 2000;
+      pointer-events: none;
+      transition: transform 0.6s cubic-bezier(.23,1.12,.62,1.01), opacity 0.6s;
+      opacity: 1;
+    }
+    .tile.over {
+      border: 2.5px solid #6ec6ff;
+      background: rgba(255,255,255,0.38);
+    }
+    .recycle-bin {
+      margin: 18px 0 10px 0;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(200,220,255,0.22);
+      box-shadow: 0 2px 16px #b0c4de33;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      color: #3a3a3a;
+      border: 2.5px dashed #6ec6ff;
+      position: relative;
+      transition: background 0.18s, border 0.18s;
+    }
+    .recycle-bin.over {
+      background: #e3f2fdcc;
+      border: 2.5px solid #2196f3;
+      color: #1976d2;
+    }
+    .words-list {
+      width: 100%;
+      min-height: 60px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 18px;
+      margin: 12px 0 8px 0;
+      padding: 10px 8px 6px 8px;
+      box-shadow: 0 2px 12px #b0c4de22;
+      font-size: 1.1rem;
+      color: #444;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: flex-start;
+      min-height: 40px;
+    }
+    .word-chip {
+      background: rgba(255,255,255,0.7);
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: 1.05rem;
+      color: #1976d2;
+      font-weight: 500;
+      margin-bottom: 2px;
+      box-shadow: 0 1px 4px #b0c4de22;
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin: 10px 0 0 0;
+      justify-content: center;
+    }
+    .btn {
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      border: none;
+      border-radius: 16px;
+      padding: 10px 22px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1976d2;
+      box-shadow: 0 2px 8px #b0c4de33;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      outline: none;
+    }
+    .btn:active {
+      background: #bbdefb;
+      color: #0d47a1;
+    }
+    .final-card {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      background: rgba(200,220,255,0.18);
+      animation: fadeInBg 0.4s;
+    }
+    .final-card-inner {
+      background: rgba(255,255,255,0.7);
+      border-radius: 32px;
+      box-shadow: 0 8px 40px #b0c4de55, 0 1.5px 0 #fff8 inset;
+      padding: 38px 28px 28px 28px;
+      min-width: 260px;
+      max-width: 90vw;
+      text-align: center;
+      animation: popIn 0.45s cubic-bezier(.23,1.12,.62,1.01);
+    }
+    .final-card-title {
+      font-size: 2.1rem;
+      font-weight: 700;
+      color: #1976d2;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 8px #fff8;
+    }
+    .final-card-score {
+      font-size: 1.3rem;
+      color: #333;
+      margin-bottom: 18px;
+    }
+    .final-card-btn {
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      border: none;
+      border-radius: 16px;
+      padding: 10px 22px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1976d2;
+      box-shadow: 0 2px 8px #b0c4de33;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      outline: none;
+    }
+    .final-card-btn:active {
+      background: #bbdefb;
+      color: #0d47a1;
+    }
+  .phoenix-flame-bg {
+  background: radial-gradient(circle at 50% 50%,
+    #ff9800 0%,
+    #ff5722 18%,
+    #ff1744 36%,
+    #ffd700 54%,
+    #b388ff 72%,
+    #ff9800 90%,
+    #ff5722 100%
+  );
+  background-size: 200% 200%;
+  animation: phoenixFireBG 12s linear infinite;
+}
+.fire-sale-bg {
+  background: linear-gradient(135deg, #ffd700 0%,#ecbd3a 50%,#d4d194 75%, #c9c9c1 100%);
+  background-size: 200% 200%;
+  animation: fireSaleBG 8s linear infinite;
+}
+@keyframes fireSaleBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes phoenixFireBG {
+  0% { background-position: 50% 0%; filter: brightness(1.1) saturate(1.2);}
+  25% { background-position: 0% 50%; filter: brightness(1.2) saturate(1.3);}
+  50% { background-position: 50% 100%; filter: brightness(1.1) saturate(1.2);}
+  75% { background-position: 100% 50%; filter: brightness(1.2) saturate(1.3);}
+  100% { background-position: 50% 0%; filter: brightness(1.1) saturate(1.2);}
+}
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0; }
+      80% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes fadeInBg {
+      0% { background: rgba(200,220,255,0); }
+      100% { background: rgba(200,220,255,0.18); }
+    }
+    .perk-card {
+      background: rgba(255,255,255,0.85);
+      border-radius: 22px;
+      box-shadow: 0 4px 24px #b0c4de44, 0 1.5px 0 #fff8 inset;
+      padding: 18px 14px;
+      min-width: 110px;
+      cursor: pointer;
+      transition: transform 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .perk-card-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1976d2;
+      margin-bottom: 8px;
+    }
+    .perk-card-desc {
+      font-size: 0.98rem;
+      color: #444;
+      text-align: center;
+    }
+    .perk-glow-common {
+      box-shadow: 0 0 16px 4px rgba(255,255,255,0.7);
+    }
+    .perk-glow-uncommon {
+      box-shadow: 0 0 16px 4px #69f07a;
+    }
+    .perk-glow-rare {
+      box-shadow: 0 0 16px 4px #2196f3;
+    }
+    .perk-glow-epic {
+      box-shadow: 0 0 16px 4px #9c27b0;
+    }
+    .perk-glow-legendary {
+      box-shadow: 0 0 24px 6px #ff9900, 0 0 32px 10px #ffd70088;
+      border: 2.5px solid #ff9900;
+      background: linear-gradient(90deg, #ff9900 0%, #ffd700 100%);
+      color: #fff8e1;
+      font-weight: bold;
+      text-shadow: 0 0 4px #ff9900, 0 0 8px #ffd700;
+    }
+    .perk-cards-row {
+      display: flex;
+      gap: 18px;
+      justify-content: center;
+      margin: 18px 0;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 480px) {
+      .perk-card {
+        padding: 14px 10px;
+        min-width: 90px;
+      }
+      .perk-card-name {
+        font-size: 1rem;
+      }
+      .perk-card-desc {
+        font-size: 0.9rem;
+      }
+    }
+  /* Perk Store scrollable row for mobile */
+  .perk-cards-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 18px;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .perk-cards-scroll .perk-card {
+    scroll-snap-align: center;
+  }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Collectionary!</h1>
+    <div class="score" id="score" style="display:none">Score: 0</div>
+    <div class="score" id="total-points" style="margin-bottom:10px;">Total Points: 0</div>
+    <div class="score" id="total-unique-words" style="margin-bottom:10px;">Collectionary: 0</div>
+    <div class="tiles" id="tiles" style="display:none"></div>
+    <div class="recycle-bin" id="recycle-bin" title="Drag here to remove letter" style="display:none">♻️</div>
+    <div class="actions">
+      <button class="btn" id="dictionary-btn" style="display:none; position:relative;">Dictionary</button>
+      <button class="btn" id="submit-word" style="display:none">Submit Word</button>
+      <button class="btn" id="give-up" style="display:none">Give Up</button>
+      <button class="btn" id="perk-store" disabled style="">Perk Store</button>
+      <button class="btn" id="use-points" style="display:none">Use Points for Next Round</button>
+      <button class="btn" id="new-game">New Game</button>
+    </div>
+    <div id="dictionary-modal" style="display:none;position:fixed;z-index:2001;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.08);align-items:center;justify-content:center;">
+      <div id="dictionary-modal-inner" style="background:rgba(255,255,255,0.97);border-radius:22px;box-shadow:0 4px 24px #b0c4de44,0 1.5px 0 #fff8 inset;padding:28px 18px 18px 18px;max-width:90vw;max-height:80vh;overflow:hidden;min-width:220px;">
+        <div style="font-size:1.35rem;font-weight:700;color:#1976d2;margin-bottom:10px;text-align:center;">Dictionary</div>
+        <div id="dictionary-words-list" style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-start;justify-content:center;max-height:48vh;overflow-y:auto;padding-right:4px;"></div>
+        <div style="margin-top:18px;text-align:center;"><button class="btn" id="close-dictionary">Close</button></div>
+      </div>
+    </div>
+
+
+<script>
+const DICTIONARY_KEY = 'liquidGlassWordGameDictionary';
+function loadDictionaryStats() {
+  const val = localStorage.getItem(DICTIONARY_KEY);
+  if (val) {
+    try { return JSON.parse(val); } catch(e) { return {}; }
+  }
+  return {};
+}
+function saveDictionaryStats(stats) {
+  localStorage.setItem(DICTIONARY_KEY, JSON.stringify(stats));
+}
+
+
+
+function updateTotalUniqueWordsDisplay() {
+  const stats = loadDictionaryStats();
+  const uniqueCount = Object.keys(stats).length;
+  const uniqueDiv = document.getElementById('total-unique-words');
+  if (uniqueDiv) uniqueDiv.textContent = `Collectionary: ${uniqueCount}`;
+}
+
+// Update both displays together
+function updateTotalPointsDisplay() {
+  const totalDiv = document.getElementById('total-points');
+  if (totalDiv) totalDiv.textContent = `Total Points: ${totalPoints}`;
+  updateTotalUniqueWordsDisplay();
+}
+
+
+
+function showDictionaryModal() {
+  const modal = document.getElementById('dictionary-modal');
+  const listDiv = document.getElementById('dictionary-words-list');
+  const stats = loadDictionaryStats();
+  listDiv.innerHTML = '';
+  const words = Object.keys(stats).sort((a,b) => stats[b]-stats[a] || a.localeCompare(b));
+  if (words.length === 0) {
+    listDiv.innerHTML = '<div style="color:#888;font-size:1.08rem;margin:18px 0;">No words solved yet.</div>';
+  } else {
+    words.forEach(word => {
+      const chip = document.createElement('span');
+      chip.className = 'word-chip';
+      chip.textContent = `${word} \u00D7${stats[word]}`;
+      chip.style.marginBottom = '2px';
+      chip.style.fontWeight = '600';
+      chip.title = `Solved ${stats[word]} time${stats[word]>1?'s':''}`;
+      listDiv.appendChild(chip);
+    });
+  }
+  modal.style.display = 'flex';
+}
+
+function hideDictionaryModal() {
+  document.getElementById('dictionary-modal').style.display = 'none';
+}
+
+document.getElementById('total-unique-words').addEventListener('click', showDictionaryModal);
+document.getElementById('close-dictionary').addEventListener('click', hideDictionaryModal);
+document.getElementById('dictionary-modal').addEventListener('click', function(e) {
+  if (e.target === this) hideDictionaryModal();
+});
+</script>
+    <div class="words-list" id="words-list" style="display:none"></div>
+    <div class="final-card" id="final-card" style="display:none"></div>
+  </div>
+  <script>
+
+    // --- Sound Effects ---
+function playPopSound({pitch=220, duration=0.11, volume=0.18, type='sine'} = {}) {
+  try {
+    const ctx = playPopSound.ctx || (playPopSound.ctx = new (window.AudioContext || window.webkitAudioContext)());
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.value = pitch;
+    g.gain.value = volume;
+    o.connect(g);
+    g.connect(ctx.destination);
+    // Envelope for pop
+    g.gain.setValueAtTime(volume, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(volume * 0.7, ctx.currentTime + duration * 0.3);
+    g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    o.start();
+    o.stop(ctx.currentTime + duration);
+    o.onended = () => { o.disconnect(); g.disconnect(); };
+  } catch (e) {}
+}
+    // Simple dictionary for demo (replace with a real one for production)
+    const DICTIONARY = [
+      'computer','keyboard','elephant','umbrella','sandwich','triangle','mountain','language','hospital','backpack','dinosaur','airplane','building','calendar','diamond','festival','galaxy','holiday','internet','jewelry','kangaroo','laughter','magazine','notebook','operator','painting','question','railroad','telescope','vacation','whistle','xylophone','zeppelin','planet','rocket','signal','window','yellow','orange','purple','circle','square','friend','school','pencil','eraser','bottle','camera','guitar','violin','rabbit','monkey','parrot','zebra','turtle','dragon','castle','forest','garden','island','jungle','kitten','laptop','mirror','napkin','ocean','pirate','quartz','rocket','safari','ticket','unicorn','violet','wallet','yogurt','zodiac','bridge','clouds','desert','energy','flower','gloves','hammer','igloo','jacket','kitten','ladder','magnet','needle','object','pillow','quiver','rocket','saddle','ticket','unicorn','valley','wallet','yellow','zebra'
+    ];
+
+let currentWord = '';
+let tiles = [];
+let foundWords = [];
+let score = 0; // in-game score (resets each round)
+let totalPoints = 0; // persistent score card
+
+// --- Persistent Total Points Storage ---
+const TOTAL_POINTS_KEY = 'liquidGlassWordGameTotalPoints';
+function loadTotalPoints() {
+  const val = localStorage.getItem(TOTAL_POINTS_KEY);
+  if (val !== null && !isNaN(parseInt(val))) {
+    totalPoints = parseInt(val);
+  } else {
+    totalPoints = 0;
+  }
+}
+function saveTotalPoints() {
+  localStorage.setItem(TOTAL_POINTS_KEY, totalPoints);
+}
+
+function updateTotalPointsDisplay() {
+  const totalDiv = document.getElementById('total-points');
+  if (totalDiv) totalDiv.textContent = `Total Points: ${totalPoints}`;
+}
+    let draggingIdx = null;
+    let gameOver = false;
+    let gameStarted = false;
+let validWordsThisRound = 0;
+let discardedTiles = [];
+let phoenixFlameActive = false; 
+let fireSaleTurnsLeft = 0;
+// --- Perk System ---
+const PERKS = [
+  {
+    id: 'legendary-perk',
+    name: 'Phoenix Flame',
+    desc: 'Throw away your letters to rise from the ashes with any word in your dictionary.(Has no effect on Galuf)',
+    action: activatePhoenixFlame,
+    rarity: 'legendary' // goldish fire orange
+  },
+  {
+  id: 'fire-sale',
+  name: 'Fire Sale',
+  desc: 'FIRE SALE! all perks 50% off. (Its free real estate)',
+  action: activateFireSale,
+  rarity: 'legendary'
+},
+  {
+    id: 'add-letter',
+    name: 'Add a Letter',
+    desc: 'Add a letter of your choice from a 3x3 grid.',
+    action: showAddLetterPerk,
+    rarity: 'common' // white
+  },
+  {
+    id: 'restore-discarded',
+    name: 'Restore Recycled ++',
+    desc: 'Restore any letters you threw away. Ever.',
+    action: showRestoreDiscardedPerk,
+    rarity: 'epic' 
+  },
+  {
+    id: 'reshuffle-word',
+    name: 'Start Fresh',
+    desc: 'Get a new word, but keep your progress and score.',
+    action: showReshuffleWordPerk,
+    rarity: 'epic' // purple
+  },
+  {
+    id: 'add-ing',
+    name: 'Add ING',
+    desc: 'Add the letters I, N, and G to your tiles.',
+    action: showAddINGPerk,
+    rarity: 'rare' // blue
+  },
+  {
+    id: 'restore-one-last5',
+    name: 'Restore Recycled',
+    desc: 'Pick one letter to restore from your last 5 discarded.',
+    action: showRestoreOneLast5Perk,
+    rarity: 'common' // white
+  },
+  {
+    id: 'pluralize',
+    name: 'Pluralize',
+    desc: 'Add an S, or E and S, to make your word plural.',
+    action: showPluralizePerk,
+    rarity: 'rare' // white
+  },
+  
+  {
+    id: 'restore-discarded-plus',
+    name: 'Restore Recycled +',
+    desc: 'Restore up to 5 letters you have discarded.',
+    action: showRestoreDiscardedPlusPerk,
+    rarity: 'rare' // green
+  }
+  // Add more perks with rarity as needed
+];
+// --- Restore Discarded Plus Perk Action ---
+function showRestoreDiscardedPlusPerk() {
+  if (discardedTiles.length === 0) {
+    showPerkInfo('No discarded letters to restore!');
+    return;
+  }
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Restore Discarded +</div>
+    <div style='margin-bottom:10px;'>Pick up to 5 letters to restore:</div>
+    <div style='display:flex;gap:12px;justify-content:center;margin:18px 0;flex-wrap:wrap;'>
+      ${discardedTiles.map((l,i) => `<div class='perk-letter' data-idx='${i}' tabindex='0' style='width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;background:rgba(255,255,255,0.7);border-radius:14px;box-shadow:0 2px 8px #b0c4de33;cursor:pointer;transition:background 0.15s;outline:2px solid transparent;'>${l}</div>`).join('')}
+    </div>
+    <div id='perk-restore-plus-msg' style='margin-top:8px;font-size:0.98rem;color:#1976d2;'></div>
+    <div style='margin-top:10px;display:flex;gap:10px;justify-content:center;'>
+      <button class='final-card-btn' id='perk-restore-plus'>Restore Selected</button>
+      <button class='final-card-btn' id='perk-cancel-plus'>Cancel</button>
+    </div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    const selected = new Set();
+    const updateMsg = () => {
+      const msg = document.getElementById('perk-restore-plus-msg');
+      if (selected.size === 0) {
+        msg.textContent = 'Select up to 5 letters to restore.';
+      } else {
+        msg.textContent = `${selected.size} letter${selected.size > 1 ? 's' : ''} selected.`;
+      }
+    };
+    document.querySelectorAll('.perk-letter').forEach(el => {
+      el.onclick = () => {
+        const idx = parseInt(el.dataset.idx);
+        if (selected.has(idx)) {
+          selected.delete(idx);
+          el.style.outline = '2px solid transparent';
+          el.style.background = 'rgba(255,255,255,0.7)';
+        } else {
+          if (selected.size >= 5) return;
+          selected.add(idx);
+          el.style.outline = '2.5px solid #1976d2';
+          el.style.background = 'rgba(224,247,250,0.7)';
+        }
+        updateMsg();
+      };
+      el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') el.click(); };
+    });
+    document.getElementById('perk-restore-plus').onclick = () => {
+      if (selected.size === 0) {
+        document.getElementById('perk-restore-plus-msg').textContent = 'Please select at least one letter.';
+        return;
+      }
+      // Restore all selected (up to 5)
+      // Sort descending so we can splice safely
+      const idxs = Array.from(selected).sort((a,b) => b-a);
+      idxs.forEach(idx => {
+        tiles.push(discardedTiles[idx]);
+        discardedTiles.splice(idx,1);
+      });
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-cancel-plus').onclick = () => { card.style.display = 'none'; };
+    updateMsg();
+  }, 50);
+}
+// ...existing code...
+function activateFireSale() {
+  fireSaleTurnsLeft = 3;
+  document.body.classList.add('fire-sale-bg'); // Add this line
+  showPerkInfo('Fire Sale activated! All perks are 50% off for your next 3 turns.');
+}
+// ...existing code...
+
+
+// Phoenix Flame activation function
+function activatePhoenixFlame() {
+  phoenixFlameActive = true;
+  showPerkInfo('Phoenix Flame is now active!');
+}
+
+// --- Override checkGameOver to support Phoenix Flame ---
+function checkGameOver() {
+  if (tiles.length === 0) {
+    if (phoenixFlameActive) {
+      phoenixFlameActive = false; // Only allow once per round
+      promptPhoenixFlameRevive();
+       
+      return;
+      
+    }
+    gameOver = true;
+    showFinalCard('Your Collection is Growing!');
+    hideGameUI();
+  }
+}
+
+// --- Phoenix Flame revive logic ---
+function promptPhoenixFlameRevive() {
+  const stats = loadDictionaryStats();
+  const words = Object.keys(stats);
+  if (words.length === 0) {
+    // No words to revive with, just end game
+    showPerkInfo('No words in your dictionary to revive with! We Continue.');
+    setTimeout(() => {
+      gameOver = true;
+      showFinalCard('No worries the collectathon continues!');
+      hideGameUI();
+    }, 800);
+    return;
+  }
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Phoenix Flame Revival!</div>
+    <div style='margin-bottom:10px;'>Select a word from your dictionary to add to your tiles and keep playing:</div>
+    <div id='phoenix-dict-list' style='display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-start;justify-content:center;max-height:32vh;overflow-y:auto;padding-right:4px;margin-bottom:12px;'>
+      ${words.map(word => `<span class='word-chip' tabindex='0' data-word='${word}' style='cursor:pointer;'>${word}</span>`).join('')}
+    </div>
+    <div id='phoenix-msg' style='color:#1976d2;font-size:1.01rem;min-height:18px;margin-bottom:8px;'></div>
+    <div style='margin-top:10px;display:flex;gap:10px;justify-content:center;'>
+      <button class='final-card-btn' id='phoenix-cancel'>Give Up</button>
+    </div>
+  </div>`;
+  card.style.display = 'flex';
+
+  setTimeout(() => {
+    document.querySelectorAll('#phoenix-dict-list .word-chip').forEach(el => {
+      el.onclick = () => {
+  const word = el.dataset.word.toUpperCase();
+  tiles = word.split('');
+  renderTiles();
+  // --- Fire explosion animation for each tile ---
+  // ...inside promptPhoenixFlameRevive, replace the fire animation block...
+setTimeout(() => {
+  const tileEls = document.querySelectorAll('.tile');
+  // A major scale up and down: A B C# D E F# G# A G# F# E D C# B A
+  const scale = [
+    440.00,  // A4
+    493.88,  // B4
+    554.37,  // C#5
+    587.33,  // D5
+    659.25,  // E5
+    739.99,  // F#5
+    830.61,  // G#5
+    880.00,  // A5
+    830.61,  // G#5
+    739.99,  // F#5
+    659.25,  // E5
+    587.33,  // D5
+    554.37,  // C#5
+    493.88,  // B4
+    440.00   // A4
+  ];
+  tileEls.forEach((tile, i) => {
+    setTimeout(() => {
+      // Create fire explosion element
+      const fire = document.createElement('div');
+      fire.className = 'fire-explosion';
+      tile.style.position = 'relative';
+      tile.appendChild(fire);
+
+      // Play one note from the scale for this tile
+      const pitch = scale[i % scale.length];
+      playPopSound({
+        pitch,
+        duration: 0.13 + Math.random() * 0.03,
+        volume: 0.17,
+        type: i % 2 === 0 ? 'triangle' : 'sine'
+      });
+
+      // Remove after animation
+      setTimeout(() => fire.remove(), 700);
+    }, i * 120);
+  });
+}, 30);
+// ...existing code...
+  card.style.display = 'none';
+  //showPerkInfo(`You revived with "${word}"!`); // reduce number of clicks and better show flame animation
+  // Continue the round
+  // Add fire background
+  document.body.classList.add('phoenix-flame-bg');
+  setTimeout(() => {
+    document.body.classList.remove('phoenix-flame-bg');
+  }, 60000); // 60 seconds
+};
+
+      el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') el.click(); };
+    });
+    document.getElementById('phoenix-cancel').onclick = () => {
+      card.style.display = 'none';
+      gameOver = true;
+      showFinalCard('We Continue!');
+      hideGameUI();
+    };
+  }, 50);
+}
+
+
+
+// --- Restore One of Last 5 Discarded Perk Action ---
+function showRestoreOneLast5Perk() {
+  const last5 = discardedTiles.slice(-5);
+  if (last5.length === 0) {
+    showPerkInfo('No discarded letters to restore!');
+    return;
+  }
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Restore 1 of Last 5</div>
+    <div style='margin-bottom:10px;'>Pick one letter to restore:</div>
+    <div style='display:flex;gap:12px;justify-content:center;margin:18px 0;flex-wrap:wrap;'>
+      ${last5.map((l,i) => `<div class='perk-letter' data-idx='${i}' tabindex='0' style='width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;background:rgba(255,255,255,0.7);border-radius:14px;box-shadow:0 2px 8px #b0c4de33;cursor:pointer;transition:background 0.15s;outline:2px solid transparent;'>${l}</div>`).join('')}
+    </div>
+    <div id='perk-restore-msg' style='margin-top:8px;font-size:0.98rem;color:#1976d2;'></div>
+    <div style='margin-top:10px;display:flex;gap:10px;justify-content:center;'>
+      <button class='final-card-btn' id='perk-restore-one'>Restore Selected</button>
+      <button class='final-card-btn' id='perk-cancel'>Cancel</button>
+    </div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    let selected = null;
+    document.querySelectorAll('.perk-letter').forEach(el => {
+      el.onclick = () => {
+        document.querySelectorAll('.perk-letter').forEach(e2 => {
+          e2.style.outline = '2px solid transparent';
+          e2.style.background = 'rgba(255,255,255,0.7)';
+        });
+        el.style.outline = '2.5px solid #1976d2';
+        el.style.background = 'rgba(224,247,250,0.7)';
+        selected = parseInt(el.dataset.idx);
+        document.getElementById('perk-restore-msg').textContent = 'Selected letter: ' + last5[selected];
+      };
+      el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') el.click(); };
+    });
+    document.getElementById('perk-restore-one').onclick = () => {
+      if (selected === null) {
+        document.getElementById('perk-restore-msg').textContent = 'Please select a letter.';
+        return;
+      }
+      // Find the index in discardedTiles (from the end)
+      const globalIdx = discardedTiles.length - last5.length + selected;
+      tiles.push(discardedTiles[globalIdx]);
+      discardedTiles.splice(globalIdx, 1);
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-cancel').onclick = () => { card.style.display = 'none'; };
+  }, 50);
+}
+
+// --- Add ING Perk Action ---
+function showAddINGPerk() {
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Add ING</div>
+    <div style='margin:18px 0;'>Add the letters <b>I</b>, <b>N</b>, and <b>G</b> to your tiles?</div>
+    <div style='display:flex;gap:18px;justify-content:center;margin:18px 0;'>
+      <button class='final-card-btn' id='perk-add-ing-confirm'>Add ING</button>
+      <button class='final-card-btn' id='perk-add-ing-cancel'>Cancel</button>
+    </div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    document.getElementById('perk-add-ing-confirm').onclick = () => {
+      tiles.push('I', 'N', 'G');
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-add-ing-cancel').onclick = () => { card.style.display = 'none'; };
+  }, 50);
+}
+// --- Pluralize Perk Action ---
+function showPluralizePerk() {
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Pluralize Your Word</div>
+    <div style='display:flex;gap:18px;justify-content:center;margin:18px 0;'>
+      <button class='final-card-btn' id='perk-add-s'>Add S</button>
+      <button class='final-card-btn' id='perk-add-es'>Add E and S</button>
+    </div>
+    <div style='margin-top:10px;'><button class='final-card-btn' id='perk-cancel'>Cancel</button></div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    document.getElementById('perk-add-s').onclick = () => {
+      tiles.push('S');
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-add-es').onclick = () => {
+      tiles.push('E', 'S');
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-cancel').onclick = () => { card.style.display = 'none'; };
+  }, 50);
+}
+
+function maybeShowPerk() {
+  if (validWordsThisRound > 0 && validWordsThisRound % 3 === 0) {
+    showPerkSelection();
+    return true;
+  }
+  return false;
+}
+
+function showPerkSelection() {
+  // Pick 3 random unique perks from all available
+  const allPerks = PERKS.slice();
+  const choices = [];
+  while (choices.length < 3 && allPerks.length > 0) {
+    const idx = Math.floor(Math.random() * allPerks.length);
+    choices.push(allPerks.splice(idx, 1)[0]);
+  }
+  const rarityGlow = {
+    'common': 'perk-glow-common',
+    'uncommon': 'perk-glow-uncommon',
+    'rare': 'perk-glow-rare',
+    'epic': 'perk-glow-epic',
+    'legendary': 'perk-glow-legendary',
+    'mythic': 'perk-glow-mythic',
+    'rainbow': 'perk-glow-rainbow'
+  };
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class="final-card-inner">
+    <div class="final-card-title">Choose a Perk!</div>
+    <div class='perk-cards-row'>
+      ${choices.map((perk, i) => `
+        <div class='perk-card ${rarityGlow[perk.rarity] || ''}' data-perk='${perk.id}' tabindex='0'>
+          <div class='perk-card-name'>${perk.name}</div>
+          <div class='perk-card-desc'>${perk.desc}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+  card.style.display = 'flex';
+  playPopSound({pitch: 350, duration: 0.10, volume: 0.15, type: 'triangle'});
+  setTimeout(() => {
+    document.querySelectorAll('.perk-card').forEach(el => {
+      el.onclick = () => {
+        playPopSound({pitch: 480, duration: 0.10, volume: 0.16, type: 'triangle'});
+        card.style.display = 'none';
+        const perk = PERKS.find(p => p.id === el.dataset.perk);
+        if (perk && typeof perk.action === 'function') perk.action();
+      };
+      el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') el.click(); };
+    });
+  }, 50);
+}
+
+// --- Perk Actions ---
+function showAddLetterPerk() {
+  // Show a modal with a 3x3 grid of random letters
+  const letters = Array.from({length:9}, () => String.fromCharCode(65 + Math.floor(Math.random()*26)));
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Pick a Letter</div>
+    <div style='display:grid;grid-template-columns:repeat(3,44px);gap:14px;justify-content:center;margin:18px 0;'>
+      ${letters.map(l => `<div class='perk-letter' tabindex='0' style='width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;background:rgba(224,247,250,0.7);border-radius:14px;box-shadow:0 2px 8px #b0c4de33;cursor:pointer;transition:background 0.15s;'>${l}</div>`).join('')}
+    </div>
+    <div style='margin-top:10px;'><button class='final-card-btn' id='perk-cancel'>Cancel</button></div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    document.querySelectorAll('.perk-letter').forEach(el => {
+      el.onclick = () => {
+        tiles.push(el.textContent);
+        renderTiles();
+        card.style.display = 'none';
+        checkGameOver();
+      };
+      el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') el.click(); };
+    });
+    document.getElementById('perk-cancel').onclick = () => { card.style.display = 'none'; };
+  }, 50);
+}
+
+function showRestoreDiscardedPerk() {
+  if (discardedTiles.length === 0) {
+    showPerkInfo('No discarded letters to restore!');
+    return;
+  }
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>Restore Discarded Letters</div>
+    <div style='display:flex;gap:12px;justify-content:center;margin:18px 0;flex-wrap:wrap;'>
+      ${discardedTiles.map((l,i) => `<div class='perk-letter' data-idx='${i}' tabindex='0' style='width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;background:rgba(255,255,255,0.7);border-radius:14px;box-shadow:0 2px 8px #b0c4de33;cursor:pointer;transition:background 0.15s;outline:2px solid transparent;'>${l}</div>`).join('')}
+    </div>
+    <div style='margin-top:10px;display:flex;gap:10px;justify-content:center;'>
+      <button class='final-card-btn' id='perk-restore'>Restore Selected</button>
+      <button class='final-card-btn' id='perk-cancel'>Cancel</button>
+    </div>
+    <div id='perk-restore-msg' style='margin-top:8px;font-size:0.98rem;color:#1976d2;'></div>
+  </div>`;
+  card.style.display = 'flex';
+  setTimeout(() => {
+    const selected = new Set();
+    const updateMsg = () => {
+      const msg = document.getElementById('perk-restore-msg');
+      if (selected.size === 0) {
+        msg.textContent = 'Select one or more letters to restore.';
+      } else {
+        msg.textContent = `${selected.size} letter${selected.size > 1 ? 's' : ''} selected.`;
+      }
+    };
+    document.querySelectorAll('.perk-letter').forEach(el => {
+      el.onclick = () => {
+        const idx = parseInt(el.dataset.idx);
+        if (selected.has(idx)) {
+          selected.delete(idx);
+          el.style.outline = '2px solid transparent';
+          el.style.background = 'rgba(255,255,255,0.7)';
+        } else {
+          selected.add(idx);
+          el.style.outline = '2.5px solid #1976d2';
+          el.style.background = 'rgba(224,247,250,0.7)';
+        }
+        updateMsg();
+      };
+      el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') el.click(); };
+    });
+    document.getElementById('perk-restore').onclick = () => {
+      if (selected.size === 0) {
+        document.getElementById('perk-restore-msg').textContent = 'Please select at least one letter.';
+        return;
+      }
+      // Restore all selected
+      // Sort descending so we can splice safely
+      const idxs = Array.from(selected).sort((a,b) => b-a);
+      idxs.forEach(idx => {
+        tiles.push(discardedTiles[idx]);
+        discardedTiles.splice(idx,1);
+      });
+      renderTiles();
+      card.style.display = 'none';
+      checkGameOver();
+    };
+    document.getElementById('perk-cancel').onclick = () => { card.style.display = 'none'; };
+    updateMsg();
+  }, 50);
+}
+
+function showReshuffleWordPerk() {
+  // Pick a new word, but keep foundWords, score, discardedTiles
+  currentWord = pickRandomWord();
+  tiles = currentWord.split('');
+  renderTiles();
+  showPerkInfo('New word loaded!');
+}
+
+function showPerkInfo(msg) {
+  const card = document.getElementById('final-card');
+  card.innerHTML = `<div class='final-card-inner'>
+    <div class='final-card-title'>${msg}</div>
+    <div style='margin-top:10px;'><button class='final-card-btn' id='perk-ok'>OK</button></div>
+  </div>`;
+  card.style.display = 'flex';
+  playPopSound({pitch: 350, duration: 0.10, volume: 0.15, type: 'triangle'});
+  setTimeout(() => {
+    document.getElementById('perk-ok').onclick = () => { 
+      playPopSound({pitch: 220, duration: 0.09, volume: 0.13, type: 'triangle'});
+      card.style.display = 'none'; 
+    };
+  }, 50);
+}
+
+    function pickRandomWord() {
+      const filtered = DICTIONARY.filter(w => w.length >= 6 && w.length <= 8);
+      return filtered[Math.floor(Math.random() * filtered.length)].toUpperCase();
+    }
+
+    function renderTiles() {
+      const tilesDiv = document.getElementById('tiles');
+      tilesDiv.innerHTML = '';
+      tiles.forEach((ch, idx) => {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.textContent = ch;
+        tile.setAttribute('draggable', 'true');
+        tile.dataset.idx = idx;
+        // Touch events for mobile
+        tile.addEventListener('touchstart', (e) => handleTouchStart(e, idx));
+        tile.addEventListener('touchmove', (e) => handleTouchMove(e, idx));
+        tile.addEventListener('touchend', (e) => handleTouchEnd(e, idx));
+        // Drag events for desktop
+        tile.addEventListener('dragstart', (e) => handleDragStart(e, idx));
+        tile.addEventListener('dragover', (e) => handleDragOver(e, idx));
+        tile.addEventListener('drop', (e) => handleDrop(e, idx));
+        tile.addEventListener('dragend', (e) => handleDragEnd(e, idx));
+        tilesDiv.appendChild(tile);
+      });
+    }
+
+// Touch drag logic
+
+let touchStartIdx = null;
+let touchGhost = null;
+let touchOverIdx = null; // 'bin' or a tile index
+let touchTargetIdx = null; // index of tile currently under finger
+let touchStartX = 0, touchStartY = 0, ghostOffsetX = 0, ghostOffsetY = 0;
+
+function handleTouchStart(e, idx) {
+  if (gameOver) return;
+  if (e.touches.length > 1) return;
+  touchStartIdx = idx;
+  const touch = e.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+  // Create ghost tile
+  const tileEls = document.querySelectorAll('.tile');
+  const origTile = tileEls[idx];
+  const rect = origTile.getBoundingClientRect();
+  touchGhost = origTile.cloneNode(true);
+  touchGhost.style.position = 'fixed';
+  touchGhost.style.left = rect.left + 'px';
+  touchGhost.style.top = rect.top + 'px';
+  touchGhost.style.width = rect.width + 'px';
+  touchGhost.style.height = rect.height + 'px';
+  touchGhost.style.zIndex = 9999;
+  touchGhost.style.pointerEvents = 'none';
+  touchGhost.classList.add('dragging');
+  document.body.appendChild(touchGhost);
+  ghostOffsetX = touch.clientX - rect.left;
+  ghostOffsetY = touch.clientY - rect.top;
+  // Do not change origTile opacity
+  touchOverIdx = null;
+  document.body.style.touchAction = 'none';
+  // Play pickup sound for touch
+  playPopSound({pitch: 180 + Math.random()*20, duration: 0.10, volume: 0.16, type: 'sine'});
+}
+
+function handleTouchMove(e, idx) {
+  if (gameOver || touchStartIdx === null || !touchGhost) return;
+  e.preventDefault(); // Prevent scrolling
+  const touch = e.touches[0];
+  // Move ghost tile
+  touchGhost.style.left = (touch.clientX - ghostOffsetX) + 'px';
+  touchGhost.style.top = (touch.clientY - ghostOffsetY) + 'px';
+
+  // Check if over recycle bin
+  const bin = document.getElementById('recycle-bin');
+  const binRect = bin.getBoundingClientRect();
+  if (
+    touch.clientX > binRect.left && touch.clientX < binRect.right &&
+    touch.clientY > binRect.top && touch.clientY < binRect.bottom
+  ) {
+    bin.classList.add('over');
+    touchOverIdx = 'bin';
+    touchTargetIdx = null;
+    // Remove highlight from all tiles
+    document.querySelectorAll('.tile').forEach(t => t.classList.remove('over'));
+  } else {
+    bin.classList.remove('over');
+    // Check if over another tile for swap
+    let found = false;
+    document.querySelectorAll('.tile').forEach((tile, i) => {
+      if (i === touchStartIdx) return;
+      const tRect = tile.getBoundingClientRect();
+      if (
+        touch.clientX > tRect.left && touch.clientX < tRect.right &&
+        touch.clientY > tRect.top && touch.clientY < tRect.bottom
+      ) {
+        tile.classList.add('over');
+        touchTargetIdx = i;
+        found = true;
+      } else {
+        tile.classList.remove('over');
+      }
+    });
+    if (!found) touchTargetIdx = null;
+    touchOverIdx = touchTargetIdx;
+  }
+}
+
+function handleTouchEnd(e, idx) {
+  if (gameOver || touchStartIdx === null) return;
+  const startIdx = touchStartIdx;
+  // Defensive: check bounds
+  if (startIdx < 0 || startIdx >= tiles.length) {
+    touchStartIdx = null;
+    touchOverIdx = null;
+    touchTargetIdx = null;
+    if (touchGhost) { touchGhost.remove(); touchGhost = null; }
+    document.body.style.touchAction = '';
+    document.querySelectorAll('.tile').forEach(t => t.classList.remove('over'));
+    document.getElementById('recycle-bin').classList.remove('over');
+    return;
+  }
+  if (touchGhost) {
+    touchGhost.remove();
+    touchGhost = null;
+  }
+  document.body.style.touchAction = '';
+  // Remove all highlights
+  document.querySelectorAll('.tile').forEach(t => t.classList.remove('over'));
+  document.getElementById('recycle-bin').classList.remove('over');
+
+  // --- Always use last touch position to detect drop target ---
+  let finalTargetIdx = null;
+  if (e.changedTouches && e.changedTouches.length > 0) {
+    const touch = e.changedTouches[0];
+    document.querySelectorAll('.tile').forEach((tile, i) => {
+      if (i === startIdx) return;
+      const tRect = tile.getBoundingClientRect();
+      if (
+        touch.clientX > tRect.left && touch.clientX < tRect.right &&
+        touch.clientY > tRect.top && touch.clientY < tRect.bottom
+      ) {
+        finalTargetIdx = i;
+      }
+    });
+  }
+
+  // Determine drop action
+  if (touchOverIdx === 'bin') {
+    // Remove letter only if valid
+    if (startIdx >= 0 && startIdx < tiles.length) {
+      discardedTiles.push(tiles[startIdx]);
+      tiles.splice(startIdx, 1);
+      // recycling type sound idk i tried
+      playPopSound({pitch: 420, duration: 0.09, volume: 0.14, type: 'triangle'});
+      setTimeout(() => {
+      playPopSound({pitch: 220, duration: 0.11, volume: 0.11, type: 'triangle'});
+      }, 55);
+      renderTiles();
+      checkGameOver();
+    }
+  } else if (typeof finalTargetIdx === 'number' && finalTargetIdx !== startIdx) {
+    // Swap tiles only if both indices are valid
+    if (startIdx >= 0 && startIdx < tiles.length && finalTargetIdx >= 0 && finalTargetIdx < tiles.length) {
+      [tiles[startIdx], tiles[finalTargetIdx]] = [tiles[finalTargetIdx], tiles[startIdx]];
+      renderTiles();
+      // Deeper, more pleasing drop sound for touch
+      playPopSound({pitch: 140 + Math.random()*20, duration: 0.14, volume: 0.19, type: 'triangle'});
+    }
+  }
+  touchStartIdx = null;
+  touchOverIdx = null;
+  touchTargetIdx = null;
+}
+
+
+// Desktop drag logic
+function handleDragStart(e, idx) {
+  if (gameOver) return;
+  draggingIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.target.classList.add('dragging');
+  // Play pickup sound
+  playPopSound({pitch: 180 + Math.random()*20, duration: 0.10, volume: 0.16, type: 'sine'});
+}
+function handleDragOver(e, idx) {
+  if (gameOver) return;
+  e.preventDefault();
+  if (draggingIdx !== null && draggingIdx !== idx) {
+    e.target.classList.add('over');
+  }
+}
+function handleDrop(e, idx) {
+  if (gameOver) return;
+  e.preventDefault();
+  if (draggingIdx !== null && draggingIdx !== idx) {
+    // Swap
+    [tiles[draggingIdx], tiles[idx]] = [tiles[idx], tiles[draggingIdx]];
+    renderTiles();
+    // Deeper, more pleasing drop sound
+    playPopSound({pitch: 140 + Math.random()*20, duration: 0.14, volume: 0.19, type: 'triangle'});
+  }
+  e.target.classList.remove('over');
+  draggingIdx = null;
+}
+function handleDragEnd(e, idx) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.tile').forEach(t => t.classList.remove('over'));
+  draggingIdx = null;
+}
+
+// Recycle bin drag for desktop
+const recycleBin = document.getElementById('recycle-bin');
+recycleBin.addEventListener('dragover', (e) => {
+  if (gameOver) return;
+  e.preventDefault();
+  recycleBin.classList.add('over');
+});
+recycleBin.addEventListener('dragleave', (e) => {
+  recycleBin.classList.remove('over');
+});
+recycleBin.addEventListener('drop', (e) => {
+  if (gameOver) return;
+  e.preventDefault();
+  if (draggingIdx !== null) {
+    // Save to discardedTiles for perk
+    discardedTiles.push(tiles[draggingIdx]);
+    tiles.splice(draggingIdx, 1);
+    renderTiles();
+    checkGameOver();
+    playPopSound({pitch: 420, duration: 0.09, volume: 0.14, type: 'triangle'});
+    setTimeout(() => {
+      playPopSound({pitch: 220, duration: 0.11, volume: 0.11, type: 'triangle'});
+    }, 55);
+  }
+  recycleBin.classList.remove('over');
+  draggingIdx = null;
+});
+
+function updateScore() {
+  const scoreDiv = document.getElementById('score');
+  const prev = parseInt(scoreDiv.textContent.replace(/\D/g, '')) || 0;
+  scoreDiv.textContent = `Score: ${score}`;
+  // Enable/disable perk store button based on in-game score
+  const perkStoreBtn = document.getElementById('perk-store');
+  if (score > 0) {
+    perkStoreBtn.disabled = false;
+    perkStoreBtn.style.opacity = 1;
+    perkStoreBtn.style.pointerEvents = '';
+  } else {
+    perkStoreBtn.disabled = true;
+    perkStoreBtn.style.opacity = 0.5;
+    perkStoreBtn.style.pointerEvents = 'none';
+  }
+  if (score > prev) {
+    scoreDiv.classList.remove('score-animate');
+    void scoreDiv.offsetWidth;
+    scoreDiv.classList.add('score-animate');
+    playPopSound({pitch: 540, duration: 0.13, volume: 0.22, type: 'triangle'});
+    setTimeout(() => scoreDiv.classList.remove('score-animate'), 500);
+  }
+  updateTotalPointsDisplay();
+}
+// --- Perk Store ---
+const PERK_PRICES = {
+  'common': 30,
+  'uncommon': 60,
+  'rare': 120,
+  'epic': 200,
+  'legendary': 350,
+  'mythic': 500,
+  'rainbow': 777
+};
+
+function showPerkStore() {
+  const card = document.getElementById('final-card');
+  // Rarity options for filter
+  const rarities = [
+    'all',
+    ...Array.from(new Set(PERKS.map(p => p.rarity))).filter(Boolean)
+  ];
+  let selectedRarity = 'all';
+
+  // Define rarity order
+  const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'rainbow'];
+  function getRarityIndex(r) {
+    const idx = rarityOrder.indexOf(r);
+    return idx === -1 ? 999 : idx;
+  }
+  function renderPerkCards() {
+    let perksToShow = selectedRarity === 'all' ? PERKS.slice() : PERKS.filter(p => p.rarity === selectedRarity);
+    // Sort by rarity order, then by name
+    perksToShow.sort((a, b) => {
+      const ra = getRarityIndex(a.rarity);
+      const rb = getRarityIndex(b.rarity);
+      if (ra !== rb) return ra - rb;
+      return a.name.localeCompare(b.name);
+    });
+    return perksToShow.map(perk => {
+      let price = PERK_PRICES[perk.rarity] || 100;
+      if (fireSaleTurnsLeft > 0) price = Math.ceil(price / 2);
+      return `<div class='perk-card ${(perk.rarity ? 'perk-glow-' + perk.rarity : '')}' style='min-width:140px;max-width:180px;position:relative;opacity:${score >= price ? 1 : 0.5};scroll-snap-align:center;'>
+        <div class='perk-card-name'>${perk.name}</div>
+        <div class='perk-card-desc'>${perk.desc}</div>
+        <div style='margin:8px 0 0 0;font-size:1.02rem;color:#1976d2;font-weight:600;'>${price} pts</div>
+        <button class='final-card-btn buy-perk-btn' data-perk='${perk.id}' data-price='${price}' style='margin-top:8px;' ${score < price ? 'disabled' : ''}>Buy</button>
+      </div>`;
+    }).join('');
+  }
+
+  card.innerHTML = `
+    <div class="final-card-inner" id="perk-store-card" style="max-width:98vw;max-height:90vh;overflow:hidden;position:relative;">
+      <div class="final-card-title">Perk Store</div>
+      <div style='font-size:1.05rem;margin-bottom:10px;'>Spend your score points to buy a perk!</div>
+      <div style='margin-bottom:8px;margin-top:4px;display:flex;align-items:center;justify-content:center;'>
+        <label for='perk-rarity-filter' style='font-size:1.01rem;margin-right:8px;'>Filter by rarity:</label>
+        <select id='perk-rarity-filter' style='font-size:1.01rem;padding:2px 8px;border-radius:8px;'>
+          ${rarities.map(r => `<option value='${r}'>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`).join('')}
+        </select>
+      </div>
+      <div class='perk-cards-scroll' id='perk-cards-scroll' style='display:flex;overflow-x:auto;gap:18px;padding-top:20px;padding-bottom:20px;padding-left:10px;margin-bottom:10px;scroll-snap-type:x mandatory;'>
+        ${renderPerkCards()}
+      </div>
+      <div id='perk-store-msg' style='margin-top:2px;font-size:1.01rem;color:#b71c1c;min-height:22px;'></div>
+      <div style='margin-top:10px;'><button class='final-card-btn' id='perk-store-exit'>Exit Store</button></div>
+    </div>
+  `;
+  card.style.display = 'flex';
+  // Allow closing by clicking outside the card
+  card.onclick = function(e) {
+    if (e.target === card) card.style.display = 'none';
+  };
+  setTimeout(() => {
+    document.getElementById('perk-store-exit').onclick = () => { card.style.display = 'none'; };
+    // Rarity filter event
+    document.getElementById('perk-rarity-filter').onchange = function() {
+      selectedRarity = this.value;
+      document.getElementById('perk-cards-scroll').innerHTML = renderPerkCards();
+      // Re-attach buy button events after re-render
+      setTimeout(attachBuyEvents, 10);
+    };
+    function attachBuyEvents() {
+      document.querySelectorAll('.buy-perk-btn').forEach(btn => {
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          const perkId = btn.dataset.perk;
+          const price = parseInt(btn.dataset.price);
+          playPopSound({pitch: 480, duration: 0.10, volume: 0.16, type: 'triangle'});
+          if (score < price) {
+            document.getElementById('perk-store-msg').textContent = 'Not enough points!';
+            playPopSound({pitch: 220, duration: 0.09, volume: 0.13, type: 'sawtooth'});
+            return;
+          }
+          // Deduct points and activate perk
+          score -= price;
+          updateScore();
+          card.style.display = 'none';
+          const perk = PERKS.find(p => p.id === perkId);
+          if (perk && typeof perk.action === 'function') perk.action();
+        };
+      });
+    }
+    attachBuyEvents();
+  }, 50);
+}
+    // Perk Store button event
+    document.getElementById('perk-store').addEventListener('click', function() {
+      if (score > 0) showPerkStore();
+    });
+
+    function renderWordsList() {
+      const list = document.getElementById('words-list');
+      list.innerHTML = '';
+      foundWords.forEach(w => {
+        const chip = document.createElement('span');
+        chip.className = 'word-chip';
+        chip.textContent = w;
+        list.appendChild(chip);
+      });
+    }
+
+
+async function isValidWord(word) {
+  if (word.length < 3) return false;
+  if (DICTIONARY.includes(word.toLowerCase())) return true;
+  // Fallback: check dictionary API (using Free Dictionary API)
+  try {
+    const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      // If the API returns an array with at least one entry, it's a valid word
+      if (Array.isArray(data) && data.length > 0) return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
+async function submitWord() {
+  if (gameOver) return;
+  const word = tiles.join('').toLowerCase();
+  if (foundWords.includes(word)) return;
+  const valid = await isValidWord(word);
+  const tileEls = Array.from(document.querySelectorAll('.tile'));
+  const scoreDiv = document.getElementById('score');
+  if (valid) {
+
+    // Animate: green glow and hop one by one, then fly to score
+    for (let i = 0; i < tileEls.length; ++i) {
+    //playPopSound({pitch: 320 + Math.random()*80, duration: 0.10 + Math.random()*0.03, volume: 0.18 + Math.random()*0.04, type: 'triangle'});
+        
+      const tile = tileEls[i];
+      tile.classList.add('valid-glow');
+      setTimeout(() => {
+        tile.classList.add('hop');
+        playPopSound({pitch: 320 + Math.random()*80, duration: 0.10 + Math.random()*0.03, volume: 0.18 + Math.random()*0.04, type: 'triangle'});
+        setTimeout(() => tile.classList.remove('hop'), 380);
+      }, i * 80);
+    }
+    // After hop, animate fly to score
+    setTimeout(() => {
+      let baseStagger = 120;
+      let baseDuration = 900;
+      let initialDelay = tileEls.length * 80 + 120;
+      if (tileEls.length <= 5) {
+        baseStagger = 220;
+        baseDuration = 1200;
+        initialDelay += 120;
+      }
+      // Custom stagger: first 3 tiles slow, then faster
+      const slowStagger = 320;
+      const fastStagger = baseStagger;
+      tileEls.forEach((tile, i) => {
+        // Clone tile for fly effect
+        const rect = tile.getBoundingClientRect();
+        const scoreRect = scoreDiv.getBoundingClientRect();
+        const fly = tile.cloneNode(true);
+        fly.classList.add('tile-fly');
+        fly.style.left = rect.left + 'px';
+        fly.style.top = rect.top + 'px';
+        fly.style.width = rect.width + 'px';
+        fly.style.height = rect.height + 'px';
+        fly.style.zIndex = 3000 + i;
+        document.body.appendChild(fly);
+        // Calculate custom delay
+        let flyDelay = 80;
+        if (i < 3) {
+          flyDelay += i * slowStagger;
+        } else {
+          flyDelay += 3 * slowStagger + (i - 3) * fastStagger;
+        }
+        setTimeout(() => {
+        playPopSound({pitch: 420 + Math.random()*60, duration: 0.09, volume: 0.13, type: 'triangle'});
+          // For short words, add a little horizontal offset to spread tiles
+          let xOffset = 0;
+          if (tileEls.length <= 5) {
+            xOffset = (i - (tileEls.length-1)/2) * 32;
+          }
+          fly.style.transform = `translate(${scoreRect.left + scoreRect.width/2 - rect.left - rect.width/2 + xOffset}px, ${scoreRect.top + scoreRect.height/2 - rect.top - rect.height/2 - 10}px) scale(0.4)`;
+          fly.style.opacity = '0';
+        }, flyDelay);
+        setTimeout(() => fly.remove(), baseDuration + flyDelay);
+      });
+    }, tileEls.length * 80 + 120);
+    // After all animations, update score
+    setTimeout(() => {
+      foundWords.push(word);
+      // --- Update dictionary stats ---
+      const stats = loadDictionaryStats();
+      stats[word] = (stats[word]||0) + 1;
+      saveDictionaryStats(stats);
+      score += word.length * 10;
+      updateScore();
+      renderWordsList();
+      tileEls.forEach(tile => tile.classList.remove('valid-glow'));
+      validWordsThisRound++;
+      if (fireSaleTurnsLeft > 0) {
+          fireSaleTurnsLeft--;
+          if (fireSaleTurnsLeft === 0) {
+          document.body.classList.remove('fire-sale-bg'); // Add this line
+          showPerkInfo('Fire Sale has ended!');
+        }
+      }
+      if (!maybeShowPerk()) {
+        // Only check game over if not showing perk
+        checkGameOver();
+      }
+    }, (tileEls.length <= 5
+        ? (3 * 320 + Math.max(0, tileEls.length - 3) * 220 + 1200)
+        : (3 * 320 + Math.max(0, tileEls.length - 3) * 120 + 950)));
+  } else {
+    // Animate: red glow and shake
+    tileEls.forEach(tile => {
+      tile.classList.add('invalid-glow', 'shake');
+      playPopSound({pitch: 120 + Math.random()*30, duration: 0.10, volume: 0.16, type: 'square'});
+      setTimeout(() => {
+        tile.classList.remove('shake');
+        tile.classList.remove('invalid-glow');
+      }, 400);
+    });
+    // Scoreboard red glow
+    scoreDiv.classList.add('score-invalid');
+    setTimeout(() => scoreDiv.classList.remove('score-invalid'), 500);
+  }
+}
+
+function showFinalCard(message) {
+  // At end of round, add in-game score to totalPoints
+  if (score > 0) {
+    totalPoints += score;
+    saveTotalPoints();
+    updateTotalPointsDisplay();
+  }
+// Calculate how many unique words were newly unlocked this round
+  let newUnique = 0;
+  if (window.startOfRoundDictionaryWords) {
+    foundWords.forEach(w => { if (!window.startOfRoundDictionaryWords.has(w)) newUnique++; });
+  } else {
+    // fallback: old logic (may be inaccurate if not set)
+    const dictStats = (typeof loadDictionaryStats === 'function') ? loadDictionaryStats() : {};
+    const dictWords = new Set(Object.keys(dictStats));
+    foundWords.forEach(w => { if (!dictWords.has(w)) newUnique++; });
+  }
+  const card = document.getElementById('final-card');
+  // Words solved animation container
+  const wordsCount = foundWords.length;
+  card.innerHTML = `<div class="final-card-inner">
+    <div class="final-card-title">${message}</div>
+    <div style="margin-bottom:6px;">
+      <span id="final-words-anim-container" style="display:inline-block;position:relative;min-width:60px;">
+        <span id="final-words-count" style="font-size:1.5rem;font-weight:700;color:#1976d2;">0</span>
+      </span>
+      <span style="font-size:1.1rem;color:#1976d2;"> words solved</span>
+    </div>
+    <div style="margin-bottom:12px;font-size:1.08rem;color:#388e3c;font-weight:600;text-align:center;">
+      <span id="final-unique-unlocked" style="font-size:1.2rem;">0</span> new unique word${newUnique===1?'':'s'} unlocked!
+    </div>
+    <div class="final-card-score" style="margin-bottom:24px;">
+      Final Score: <b id="final-score-anim">0</b>
+    </div>
+    <div id="final-words-list" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:10px;"></div>
+    <button class="final-card-btn" id="final-new-game">New Game</button>
+  </div>`;
+  card.style.display = 'flex';
+  playPopSound({pitch: 540, duration: 0.13, volume: 0.22, type: 'triangle'});
+
+
+  // Animate words flying into the count, then animate score and unique count
+  setTimeout(() => {
+    const wordsListDiv = document.getElementById('final-words-list');
+    const countSpan = document.getElementById('final-words-count');
+    const uniqueSpan = document.getElementById('final-unique-unlocked');
+    let currentCount = 0;
+    let lastWordAnimTime = 0;
+    foundWords.forEach((w, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'word-chip';
+      chip.textContent = w;
+      chip.style.opacity = '0';
+      chip.style.transform = 'scale(0.7) translateY(20px)';
+      chip.style.transition = 'opacity 0.3s, transform 0.3s';
+      wordsListDiv.appendChild(chip);
+      const appearDelay = 100 + i * 180;
+      const flyDelay = 400 + i * 80;
+      lastWordAnimTime = appearDelay + flyDelay + 500; // 500ms for fly duration
+      setTimeout(() => {
+        chip.style.opacity = '1';
+        chip.style.transform = 'scale(1) translateY(0)';
+        playPopSound({pitch: 320 + Math.random()*80, duration: 0.10, volume: 0.16, type: 'triangle'});
+        // Animate flying into the count
+        setTimeout(() => {
+          const rect1 = chip.getBoundingClientRect();
+          const rect2 = countSpan.getBoundingClientRect();
+          const dx = rect2.left - rect1.left;
+          const dy = rect2.top - rect1.top;
+          chip.style.transition = 'transform 0.5s cubic-bezier(.23,1.12,.62,1.01), opacity 0.5s';
+          chip.style.transform = `translate(${dx}px,${dy}px) scale(0.3)`;
+          chip.style.opacity = '0';
+          setTimeout(() => {
+            chip.remove();
+            currentCount++;
+            countSpan.textContent = currentCount;
+            playPopSound({pitch: 420 + Math.random()*60, duration: 0.09, volume: 0.13, type: 'triangle'});
+          }, 500);
+        }, flyDelay);
+      }, appearDelay);
+    });
+    // If no words, just set count and animate score and unique immediately
+    if (foundWords.length === 0) {
+      countSpan.textContent = '0';
+      animateUniqueCountUp(animateScoreCountUp);
+    } else {
+      setTimeout(() => {
+        animateUniqueCountUp(animateScoreCountUp);
+      }, lastWordAnimTime + 100);
+    }
+    // Slower, more triumphant unique count up with pleasing sound
+    function animateUniqueCountUp(onDone) {
+      let displayUnique = 0;
+      const uniqueTarget = newUnique;
+      // Always increment by 1 for drama
+      const uniqueInc = 1;
+      // Triumphant sound sequence (C major arpeggio up, then down, then up)
+      const triumphant = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25, 523.25, 1046.50];
+      let noteIdx = 0;
+      function animateUnique() {
+        if (displayUnique < uniqueTarget) {
+          displayUnique += uniqueInc;
+          if (displayUnique > uniqueTarget) displayUnique = uniqueTarget;
+          uniqueSpan.textContent = displayUnique;
+          // Play a triumphant, pleasing sound (bell-like, triangle waveform, longer duration)
+          playPopSound({
+            pitch: triumphant[noteIdx % triumphant.length],
+            duration: 0.19,
+            volume: 0.19,
+            type: 'triangle'
+          });
+          noteIdx++;
+          setTimeout(animateUnique, 220);
+        } else {
+          uniqueSpan.textContent = uniqueTarget;
+          if (typeof onDone === 'function') onDone();
+        }
+      }
+      animateUnique();
+    }
+    function animateScoreCountUp() {
+      const scoreSpan = document.getElementById('final-score-anim');
+      let displayScore = 0;
+      const increment = Math.max(1, Math.floor(score / 40));
+      // Pentatonic scale (C major): C D E G A (MIDI: 60, 62, 64, 67, 69)
+      const pentatonic = [261.63, 293.66, 329.63, 392.00, 440.00];
+      let noteIdx = 0;
+      function animateScore() {
+        if (displayScore < score) {
+          displayScore += increment;
+          if (displayScore > score) displayScore = score;
+          scoreSpan.textContent = displayScore;
+          // Cycle through pentatonic notes for harmony
+          playPopSound({
+            pitch: pentatonic[noteIdx % pentatonic.length] * (1 + Math.floor(noteIdx / pentatonic.length) * 0.08),
+            duration: 0.09,
+            volume: 0.13,
+            type: 'sine'
+          });
+          noteIdx++;
+          setTimeout(animateScore, 18);
+        } else {
+          scoreSpan.textContent = score;
+        }
+      }
+      animateScore();
+    }
+  }, 100);
+
+  setTimeout(() => {
+    document.getElementById('final-new-game').onclick = () => {
+      playPopSound({pitch: 320, duration: 0.10, volume: 0.16, type: 'triangle'});
+      card.style.display = 'none';
+      enableNewGame();
+    };
+  }, 50);
+}
+// commenting out so pheonix flame perk gets priority and can intrupt game over
+    // function checkGameOver() {
+    //   if (tiles.length === 0) {
+    //     gameOver = true;
+    //     showFinalCard('Game Over!');
+    //     hideGameUI();
+    //   }
+    // }
+
+    function giveUp() {
+      if (gameOver) return;
+      gameOver = true;
+      playPopSound({pitch: 180, duration: 0.13, volume: 0.18, type: 'triangle'});
+      showFinalCard('Come back soon!');
+      hideGameUI();
+    }
+
+function newGame(startingScore = 0) {
+  playPopSound({pitch: 420, duration: 0.13, volume: 0.18, type: 'triangle'});
+  currentWord = pickRandomWord();
+  tiles = currentWord.split('');
+  foundWords = [];
+  score = startingScore || 0; // Reset in-game score, or use user-selected amount
+  gameOver = false;
+  gameStarted = true;
+  validWordsThisRound = 0;
+  discardedTiles = [];
+  // Track dictionary at start of round for unique word count
+  if (typeof loadDictionaryStats === 'function') {
+    window.startOfRoundDictionaryWords = new Set(Object.keys(loadDictionaryStats()));
+  } else {
+    window.startOfRoundDictionaryWords = new Set();
+  }
+  updateScore();
+  renderTiles();
+  renderWordsList();
+  showGameUI();
+  disableNewGame();
+  selectedStartingScore = 0; // Reset after use so next game starts at 0 unless user picks again
+}
+
+    function showGameUI() {
+      document.getElementById('score').style.display = '';
+      document.getElementById('tiles').style.display = '';
+      document.getElementById('recycle-bin').style.display = '';
+      document.getElementById('submit-word').style.display = '';
+      document.getElementById('give-up').style.display = '';
+      document.getElementById('words-list').style.display = '';
+      document.getElementById('use-points').style.display = 'none'; // Hide use-points button during game
+      document.getElementById('new-game').style.display = 'none'; // Hide new-game button during game
+      document.getElementById('total-points').style.display = 'none'; // Hide total points during game
+      document.getElementById('perk-store').style.display = ''; // show perk store button
+      document.getElementById('dictionary-btn').style.display = 'none'; // Hide dictionary button during game
+      
+      document.querySelector('.container').classList.remove('home-align-center');// Remove home-align-center when game starts
+      document.getElementById('total-unique-words').style.display = 'none'; // Hide on game screen
+    }
+    function hideGameUI() {
+      document.getElementById('score').style.display = 'none';
+      document.getElementById('tiles').style.display = 'none';
+      document.getElementById('recycle-bin').style.display = 'none';
+      document.getElementById('submit-word').style.display = 'none';
+      document.getElementById('give-up').style.display = 'none';
+      document.getElementById('words-list').style.display = 'none';
+      document.getElementById('use-points').style.display = 'none'; // Show use-points button on start screen
+      document.getElementById('new-game').style.display = ''; // Show new-game button on start screen
+      document.getElementById('total-points').style.display = ''; // Show total points on start screen
+      document.getElementById('perk-store').style.display = 'none'; // Hide perk store button on start screen
+      document.getElementById('dictionary-btn').style.display = 'none'; // hiding as im combining dictonary score and button and no longer need this
+      document.querySelector('.container').classList.add('home-align-center'); // Center align home screen
+      document.getElementById('total-unique-words').style.display = ''; // Show on home screen
+    }
+    function disableNewGame() {
+      const btn = document.getElementById('new-game');
+      btn.disabled = true;
+      btn.style.opacity = 0.5;
+      btn.style.pointerEvents = 'none';
+    }
+    function enableNewGame() {
+      const btn = document.getElementById('new-game');
+      btn.disabled = false;
+      btn.style.opacity = 1;
+      btn.style.pointerEvents = '';
+      hideGameUI();
+      gameStarted = false;
+    }
+
+    document.getElementById('submit-word').addEventListener('click', submitWord);
+    document.getElementById('give-up').addEventListener('click', giveUp);
+    document.getElementById('new-game').addEventListener('click', function() {
+      if (!gameStarted) newGame(selectedStartingScore);
+    });
+
+    // --- Use Points for Next Round Button ---
+    let selectedStartingScore = 0;
+    document.getElementById('total-points').addEventListener('click', function() {
+    
+      if (gameStarted) return;
+      // Show modal to select amount
+      const card = document.getElementById('final-card');
+      card.innerHTML = `<div class='final-card-inner'>
+        <div class='final-card-title'>Use Points for Next Round</div>
+        <div style='margin-bottom:10px;'>You have <b>${totalPoints}</b> points.</div>
+        <div style='margin-bottom:10px;'>
+          <label for='starting-score-input'>Points to use as starting score:</label><br>
+          <input type='number' id='starting-score-input' min='0' max='${totalPoints}' value='0' style='font-size:1.1rem;padding:4px 10px;border-radius:8px;width:90px;text-align:center;'>
+        </div>
+        <div id='use-points-msg' style='color:#b71c1c;font-size:1.01rem;min-height:18px;'></div>
+        <div style='margin-top:10px;display:flex;gap:10px;justify-content:center;'>
+          <button class='final-card-btn' id='use-points-confirm'>Confirm</button>
+          <button class='final-card-btn' id='use-points-cancel'>Cancel</button>
+        </div>
+      </div>`;
+      card.style.display = 'flex';
+      playPopSound({pitch: 350, duration: 0.10, volume: 0.15, type: 'triangle'});
+      setTimeout(() => {
+        const input = document.getElementById('starting-score-input');
+        input.focus();
+        document.getElementById('use-points-confirm').onclick = () => {
+          let val = parseInt(input.value);
+          if (isNaN(val) || val < 0) val = 0;
+          if (val > totalPoints) {
+            playPopSound({pitch: 120, duration: 0.10, volume: 0.16, type: 'square'});
+            document.getElementById('use-points-msg').textContent = 'Not enough points!';
+            return;
+          }
+          playPopSound({pitch: 420, duration: 0.13, volume: 0.18, type: 'triangle'});
+          selectedStartingScore = val;
+          totalPoints -= val;
+          saveTotalPoints();
+          updateTotalPointsDisplay();
+          card.style.display = 'none';
+        };
+        document.getElementById('use-points-cancel').onclick = () => {
+          playPopSound({pitch: 220, duration: 0.09, volume: 0.13, type: 'triangle'});
+          card.style.display = 'none';
+        };
+      }, 50);
+    });
+
+    // On load, hide game UI, enable new game, load total points
+    window.onload = function() {
+      loadTotalPoints();
+      updateTotalPointsDisplay();
+      updateTotalUniqueWordsDisplay();
+      hideGameUI();
+      enableNewGame();
+      
+    };
+  </script>
+</body>
+</html>
