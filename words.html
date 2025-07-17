@@ -356,7 +356,7 @@
   animation: phoenixFireBG 12s linear infinite;
 }
 .fire-sale-bg {
-  background: linear-gradient(135deg, #ffd700 0%,#ecbd3a 50%,#d4d194 75%, #c9c9c1 100%);
+  background: linear-gradient(135deg, #d4d194 0%,#c9c9c1  50%,#ecbd3a 75%, #c9c9c1 100%);
   background-size: 200% 200%;
   animation: fireSaleBG 8s linear infinite;
 }
@@ -477,7 +477,7 @@
     </div>
     <div id="dictionary-modal" style="display:none;position:fixed;z-index:2001;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.08);align-items:center;justify-content:center;">
       <div id="dictionary-modal-inner" style="background:rgba(255,255,255,0.97);border-radius:22px;box-shadow:0 4px 24px #b0c4de44,0 1.5px 0 #fff8 inset;padding:28px 18px 18px 18px;max-width:90vw;max-height:80vh;overflow:hidden;min-width:220px;">
-        <div style="font-size:1.35rem;font-weight:700;color:#1976d2;margin-bottom:10px;text-align:center;">Dictionary</div>
+        <div style="font-size:1.35rem;font-weight:700;color:#1976d2;margin-bottom:10px;text-align:center;">Words Collected</div>
         <div id="dictionary-words-list" style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-start;justify-content:center;max-height:48vh;overflow-y:auto;padding-right:4px;"></div>
         <div style="margin-top:18px;text-align:center;"><button class="btn" id="close-dictionary">Close</button></div>
       </div>
@@ -600,6 +600,7 @@ function saveTotalPoints() {
 function updateTotalPointsDisplay() {
   const totalDiv = document.getElementById('total-points');
   if (totalDiv) totalDiv.textContent = `Total Points: ${totalPoints}`;
+  updateTotalUniqueWordsDisplay();
 }
     let draggingIdx = null;
     let gameOver = false;
