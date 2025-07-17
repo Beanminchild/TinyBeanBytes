@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>lingo leaps</title>
+  <title>Collectionary!</title>
   <style>
     body {
       margin: 0;
@@ -461,9 +461,10 @@
 </head>
 <body>
   <div class="container">
-    <h1>Lingo Leaps</h1>
+    <h1>Collectionary!</h1>
     <div class="score" id="score" style="display:none">Score: 0</div>
     <div class="score" id="total-points" style="margin-bottom:10px;">Total Points: 0</div>
+    <div class="score" id="total-unique-words" style="margin-bottom:10px;">Collectionary: 0</div>
     <div class="tiles" id="tiles" style="display:none"></div>
     <div class="recycle-bin" id="recycle-bin" title="Drag here to remove letter" style="display:none">♻️</div>
     <div class="actions">
@@ -496,6 +497,24 @@ function saveDictionaryStats(stats) {
   localStorage.setItem(DICTIONARY_KEY, JSON.stringify(stats));
 }
 
+
+
+function updateTotalUniqueWordsDisplay() {
+  const stats = loadDictionaryStats();
+  const uniqueCount = Object.keys(stats).length;
+  const uniqueDiv = document.getElementById('total-unique-words');
+  if (uniqueDiv) uniqueDiv.textContent = `Collectionary: ${uniqueCount}`;
+}
+
+// Update both displays together
+function updateTotalPointsDisplay() {
+  const totalDiv = document.getElementById('total-points');
+  if (totalDiv) totalDiv.textContent = `Total Points: ${totalPoints}`;
+  updateTotalUniqueWordsDisplay();
+}
+
+
+
 function showDictionaryModal() {
   const modal = document.getElementById('dictionary-modal');
   const listDiv = document.getElementById('dictionary-words-list');
@@ -522,7 +541,7 @@ function hideDictionaryModal() {
   document.getElementById('dictionary-modal').style.display = 'none';
 }
 
-document.getElementById('dictionary-btn').addEventListener('click', showDictionaryModal);
+document.getElementById('total-unique-words').addEventListener('click', showDictionaryModal);
 document.getElementById('close-dictionary').addEventListener('click', hideDictionaryModal);
 document.getElementById('dictionary-modal').addEventListener('click', function(e) {
   if (e.target === this) hideDictionaryModal();
@@ -594,7 +613,7 @@ const PERKS = [
   {
     id: 'legendary-perk',
     name: 'Phoenix Flame',
-    desc: 'Throw away your letters to rise from the ashes with any word in your dictonary.(Has no effect on Galuf)',
+    desc: 'Throw away your letters to rise from the ashes with any word in your dictionary.(Has no effect on Galuf)',
     action: activatePhoenixFlame,
     rarity: 'legendary' // goldish fire orange
   },
@@ -750,7 +769,7 @@ function checkGameOver() {
       
     }
     gameOver = true;
-    showFinalCard('Game Over!');
+    showFinalCard('Your Collection is Growing!');
     hideGameUI();
   }
 }
@@ -761,10 +780,10 @@ function promptPhoenixFlameRevive() {
   const words = Object.keys(stats);
   if (words.length === 0) {
     // No words to revive with, just end game
-    showPerkInfo('No words in your dictionary to revive with! Game over.');
+    showPerkInfo('No words in your dictionary to revive with! We Continue.');
     setTimeout(() => {
       gameOver = true;
-      showFinalCard('Game Over!');
+      showFinalCard('No worries the collectathon continues!');
       hideGameUI();
     }, 800);
     return;
@@ -849,7 +868,7 @@ setTimeout(() => {
     document.getElementById('phoenix-cancel').onclick = () => {
       card.style.display = 'none';
       gameOver = true;
-      showFinalCard('Game Over!');
+      showFinalCard('We Continue!');
       hideGameUI();
     };
   }, 50);
@@ -1476,8 +1495,10 @@ function showPerkStore() {
           ev.stopPropagation();
           const perkId = btn.dataset.perk;
           const price = parseInt(btn.dataset.price);
+          playPopSound({pitch: 480, duration: 0.10, volume: 0.16, type: 'triangle'});
           if (score < price) {
             document.getElementById('perk-store-msg').textContent = 'Not enough points!';
+            playPopSound({pitch: 220, duration: 0.09, volume: 0.13, type: 'sawtooth'});
             return;
           }
           // Deduct points and activate perk
@@ -1802,7 +1823,7 @@ function showFinalCard(message) {
       if (gameOver) return;
       gameOver = true;
       playPopSound({pitch: 180, duration: 0.13, volume: 0.18, type: 'triangle'});
-      showFinalCard('You gave up!');
+      showFinalCard('Come back soon!');
       hideGameUI();
     }
 
@@ -1842,8 +1863,9 @@ function newGame(startingScore = 0) {
       document.getElementById('total-points').style.display = 'none'; // Hide total points during game
       document.getElementById('perk-store').style.display = ''; // show perk store button
       document.getElementById('dictionary-btn').style.display = 'none'; // Hide dictionary button during game
-      // Remove home-align-center when game starts
-      document.querySelector('.container').classList.remove('home-align-center');
+      
+      document.querySelector('.container').classList.remove('home-align-center');// Remove home-align-center when game starts
+      document.getElementById('total-unique-words').style.display = 'none'; // Hide on game screen
     }
     function hideGameUI() {
       document.getElementById('score').style.display = 'none';
@@ -1856,8 +1878,9 @@ function newGame(startingScore = 0) {
       document.getElementById('new-game').style.display = ''; // Show new-game button on start screen
       document.getElementById('total-points').style.display = ''; // Show total points on start screen
       document.getElementById('perk-store').style.display = 'none'; // Hide perk store button on start screen
-      document.getElementById('dictionary-btn').style.display = ''; // Show dictionary button on home screen
+      document.getElementById('dictionary-btn').style.display = 'none'; // hiding as im combining dictonary score and button and no longer need this
       document.querySelector('.container').classList.add('home-align-center'); // Center align home screen
+      document.getElementById('total-unique-words').style.display = ''; // Show on home screen
     }
     function disableNewGame() {
       const btn = document.getElementById('new-game');
@@ -1931,9 +1954,10 @@ function newGame(startingScore = 0) {
     window.onload = function() {
       loadTotalPoints();
       updateTotalPointsDisplay();
+      updateTotalUniqueWordsDisplay();
       hideGameUI();
       enableNewGame();
-      document.getElementById('dictionary-btn').style.display = '';
+      
     };
   </script>
 </body>
