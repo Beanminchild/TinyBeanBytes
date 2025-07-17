@@ -1,0 +1,87 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #e0e7ff 0%, #f0f4f8 100%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.container {
+  width: 95vw;
+  max-width: 400px;
+  padding: 2rem 1rem;
+  border-radius: 2rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+}
+.glass {
+  background: rgba(255,255,255,0.3);
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+  padding: 1rem;
+  margin: 0.5rem 0;
+  min-height: 48px;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+#word-area .tile, #letter-grid .tile {
+  background: rgba(255,255,255,0.7);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 0.75rem 1rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: grab;
+  user-select: none;
+  transition: background 0.2s;
+}
+#throw-away {
+  min-width: 120px;
+  min-height: 48px;
+  color: #d32f2f;
+  font-weight: bold;
+  text-align: center;
+  border: 2px dashed #d32f2f;
+  cursor: pointer;
+}
+#score {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+}
+button {
+  padding: 0.75rem 2rem;
+  border-radius: 1rem;
+  border: none;
+  background: #6366f1;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.15);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+button:hover {
+  background: #4f46e5;
+}
+@media (max-width: 600px) {
+  .container {
+    max-width: 98vw;
+    padding: 1rem 0.5rem;
+  }
+  #word-area .tile, #letter-grid .tile {
+    font-size: 1.1rem;
+    padding: 0.5rem 0.7rem;
+  }
+}
