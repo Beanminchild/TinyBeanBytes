@@ -480,7 +480,7 @@
     <div id="how-to-play-modal" style="display:none;position:fixed;z-index:2001;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.08);align-items:center;justify-content:center;">
       <div id="how-to-play-modal-inner" style="background:rgba(255,255,255,0.97);border-radius:22px;box-shadow:0 4px 24px #b0c4de44,0 1.5px 0 #fff8 inset;padding:28px 18px 18px 18px;max-width:90vw;max-height:80vh;overflow:hidden;min-width:220px;">
         <div style="font-size:1.35rem;font-weight:700;color:#1976d2;margin-bottom:10px;text-align:center;">How to Play</div>
-        <div id="game-rules-text" style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-start;justify-content:center;max-height:48vh;overflow-y:auto;padding-right:4px;"></div>
+        <div id="game-rules-text" style="display:block;flex-wrap:wrap;gap:8px 12px;align-items:flex-start;justify-content:center;max-height:48vh;overflow-y:auto;padding-right:4px;"></div>
         <div style="margin-top:18px;text-align:center;"><button class="btn" id="close-how-to-play-modal">Close</button></div>
       </div>
     </div>
@@ -525,6 +525,10 @@ function updateTotalPointsDisplay() {
 
 
 function showDictionaryModal() {
+  playPopSound({pitch: 420, duration: 0.09, volume: 0.14, type: 'triangle'});
+    setTimeout(() => {
+      playPopSound({pitch: 620, duration: 0.11, volume: 0.11, type: 'triangle'});
+    }, 55);
   const modal = document.getElementById('dictionary-modal');
   const listDiv = document.getElementById('dictionary-words-list');
   const stats = loadDictionaryStats();
@@ -547,6 +551,10 @@ function showDictionaryModal() {
 }
 
 function hideDictionaryModal() {
+  playPopSound({pitch: 620, duration: 0.09, volume: 0.14, type: 'triangle'});
+    setTimeout(() => {
+      playPopSound({pitch: 420, duration: 0.11, volume: 0.11, type: 'triangle'});
+    }, 55);
   document.getElementById('dictionary-modal').style.display = 'none';
 }
 
@@ -565,14 +573,27 @@ document.getElementById('dictionary-modal').addEventListener('click', function(e
 function showHowToPlayModal() {
   const modal = document.getElementById('how-to-play-modal');
   const listDiv = document.getElementById('game-rules-text');
-  const stats = loadDictionaryStats();
-  listDiv.innerHTML = 'hello';
+  
+  playPopSound({pitch: 350, duration: 0.10, volume: 0.15, type: 'triangle'});
+  listDiv.innerHTML = '<p>Collectionary is a game about rearranging words into other words.</p>'
+  + '<p>The goal is to turn words into as many unique words as possible to fill out your Collectionary!</p>'
+  + '<p>Each round starts with a word,to play simply drag and drop the letters around to create a new word. Once you think you have a valid english dictionary word hit "Submit" to tally you points.</p>'
+  + '<p>Keep doing that until you either cant think of a word or you run out of letters! </p>'
+  + '<p>If you get stuck or have to give up a round, dont let it discourage you, try again! This game is a collectathon and every unique word you collect brings you closer to your ultimate goal of collecting 10,000 words!</p>'
+  + '<p>As you play you will unlock more and more secrets that will help you on your journey to fill your Collectionary! So keep at it and happy collecting!</p>'
+  + '<p>If you ever find a word that you think should count and it doesnt use the form here to request we add it to the games dictionary and we will review and add it if we agree!</p> '
+  + '<p>Form comming soon...</p>'
+  + '<p> New features and mechanics added regularly...until i get bored or my GF stops playing!<p/>'
+  + '<p> Starting Words are switched out weekly!</p>'
+
+
   
   modal.style.display = 'flex';
 }
 
 function hideHowToPlayModal() {
   document.getElementById('how-to-play-modal').style.display = 'none';
+  playPopSound({pitch: 220, duration: 0.09, volume: 0.13, type: 'triangle'});
 }
 
 document.getElementById('how-to-play').addEventListener('click', showHowToPlayModal);
