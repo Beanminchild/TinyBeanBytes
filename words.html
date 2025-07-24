@@ -473,7 +473,16 @@
       <button class="btn" id="give-up" style="display:none">Give Up</button>
       <button class="btn" id="perk-store" disabled style="">Perk Store</button>
       <button class="btn" id="use-points" style="display:none">Use Points for Next Round</button>
+      <button class="btn" id="how-to-play">How to Play</button>
       <button class="btn" id="new-game">New Game</button>
+      
+    </div>    
+    <div id="how-to-play-modal" style="display:none;position:fixed;z-index:2001;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.08);align-items:center;justify-content:center;">
+      <div id="how-to-play-modal-inner" style="background:rgba(255,255,255,0.97);border-radius:22px;box-shadow:0 4px 24px #b0c4de44,0 1.5px 0 #fff8 inset;padding:28px 18px 18px 18px;max-width:90vw;max-height:80vh;overflow:hidden;min-width:220px;">
+        <div style="font-size:1.35rem;font-weight:700;color:#1976d2;margin-bottom:10px;text-align:center;">How to Play</div>
+        <div id="game-rules-text" style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-start;justify-content:center;max-height:48vh;overflow-y:auto;padding-right:4px;"></div>
+        <div style="margin-top:18px;text-align:center;"><button class="btn" id="close-how-to-play-modal">Close</button></div>
+      </div>
     </div>
     <div id="dictionary-modal" style="display:none;position:fixed;z-index:2001;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.08);align-items:center;justify-content:center;">
       <div id="dictionary-modal-inner" style="background:rgba(255,255,255,0.97);border-radius:22px;box-shadow:0 4px 24px #b0c4de44,0 1.5px 0 #fff8 inset;padding:28px 18px 18px 18px;max-width:90vw;max-height:80vh;overflow:hidden;min-width:220px;">
@@ -551,6 +560,33 @@ document.getElementById('dictionary-modal').addEventListener('click', function(e
     <div class="final-card" id="final-card" style="display:none"></div>
   </div>
   <script>
+
+
+function showHowToPlayModal() {
+  const modal = document.getElementById('how-to-play-modal');
+  const listDiv = document.getElementById('game-rules-text');
+  const stats = loadDictionaryStats();
+  listDiv.innerHTML = 'hello';
+  
+  modal.style.display = 'flex';
+}
+
+function hideHowToPlayModal() {
+  document.getElementById('how-to-play-modal').style.display = 'none';
+}
+
+document.getElementById('how-to-play').addEventListener('click', showHowToPlayModal);
+document.getElementById('close-how-to-play-modal').addEventListener('click', hideHowToPlayModal);
+document.getElementById('how-to-play-modal').addEventListener('click', function(e) {
+  if (e.target === this) hideHowToPlayModal();
+});
+</script>
+    <div class="words-list" id="words-list" style="display:none"></div>
+    <div class="final-card" id="final-card" style="display:none"></div>
+  </div>
+  <script>
+
+
 
     // --- Sound Effects ---
 function playPopSound({pitch=220, duration=0.11, volume=0.18, type='sine'} = {}) {
@@ -1864,6 +1900,7 @@ function newGame(startingScore = 0) {
       document.getElementById('total-points').style.display = 'none'; // Hide total points during game
       document.getElementById('perk-store').style.display = ''; // show perk store button
       document.getElementById('dictionary-btn').style.display = 'none'; // Hide dictionary button during game
+      document.getElementById('how-to-play').style.display = 'none'; 
       
       document.querySelector('.container').classList.remove('home-align-center');// Remove home-align-center when game starts
       document.getElementById('total-unique-words').style.display = 'none'; // Hide on game screen
@@ -1882,6 +1919,7 @@ function newGame(startingScore = 0) {
       document.getElementById('dictionary-btn').style.display = 'none'; // hiding as im combining dictonary score and button and no longer need this
       document.querySelector('.container').classList.add('home-align-center'); // Center align home screen
       document.getElementById('total-unique-words').style.display = ''; // Show on home screen
+      document.getElementById('how-to-play').style.display = ''; 
     }
     function disableNewGame() {
       const btn = document.getElementById('new-game');
