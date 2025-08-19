@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Black Cat Hacker</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #222;
+        }
+        canvas {
+            background-color: #444;
+            display: block;
+            margin: 0 auto;
+        }
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        #startButton {
+            padding: 20px 40px;
+            font-size: 24px;
+            background-color: #555;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #scoreboard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <button id="startButton">Start Game</button>
+    </div>
+    <div id="scoreboard">
+        <div id="gitScoreBar" style="display: flex; align-items: center; gap: 12px;">
+            <span style="background: #2ea043; color: white; border-radius: 4px 0 0 4px; padding: 4px 10px; font-family: monospace; font-size: 20px; display: flex; align-items: center;">
+                +<span id="gitAdditions">0</span>
+            </span>
+            <span style="background: #f85149; color: white; border-radius: 0 4px 4px 0; padding: 4px 10px; font-family: monospace; font-size: 20px; display: flex; align-items: center; opacity: 0.5;">
+                -0
+            </span>
+            <span id="gitCube" style="width: 24px; height: 24px; margin-left: 8px; border-radius: 4px; background: #888; display: inline-block; border: 2px solid #222; box-shadow: 0 2px 6px #0004;"></span>
+        </div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = 800;
+        canvas.height = 600;
+
+        const startScreen = document.getElementById('startScreen');
+        const startButton = document.getElementById('startButton');
+
+        let shelves = [];
+
+        const cat = {
+            x: 50,
+            y: 500,
+            width: 20,
+            height: 20,
+            speed: 5,
+            velocityY: 0,
+            isJumping: false,
+            color: 'black'
+        };
+
+        const desk = {
+            x: 0,
+            y: 550,
+            width: canvas.width,
+            height: 50,
+            color: 'brown'
+        };
+
+        const monitor = {
+            x: canvas.width / 2 - 25,
+            y: desk.y - 50,
+            width: 100,
+            height: 100,
+            //color: 'blue',
+            label: 'Monitor'
+        };
+
+        let gameStarted = false;
+        let codeMode = false;
+        let score = 0;
+        let codeParticles = [];
+    const gitAdditions = document.getElementById('gitAdditions');
+    const gitCube = document.getElementById('gitCube');
+
+        function isCatNearMonitor() {
+            // Cat's center x
+            const catCenter = cat.x + cat.width / 2;
+            // Monitor's center x
+            const monitorCenter = monitor.x + monitor.width / 2;
+            return Math.abs(catCenter - monitorCenter) < 40;
+        }
+
+        function generateCodeParticle(score) {
+            
+            const codeSnippets = [
+                { text: "console.log('meow')", consoleColor: 'white', logColor: 'green', meowColor: 'lightblue' },
+                { text: "cat.jump()", consoleColor: 'white', logColor: 'orange', meowColor: 'white' },
+                { text: "if (cat.isSleeping) { wakeUp() }", consoleColor: 'white', logColor: 'yellow', meowColor: 'white' },
+                { text: "let catFood = new Food('tuna')", consoleColor: 'white', logColor: 'red', meowColor: 'white' },
+                { text: "cat.play('yarn')", consoleColor: 'white', logColor: 'purple', meowColor: 'white' },
+                { text: "debug('cat position: ' + cat.x + ', ' + cat.y)", consoleColor: 'white', logColor: 'cyan', meowColor: 'white' },
+                { text: "error('no more catnip')", consoleColor: 'white', logColor: 'red', meowColor: 'white' },
+                { text: "function purr() { return 'purr' }", consoleColor: 'white', logColor: 'lime', meowColor: 'white' }
+            ];
+
+            const snippet = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+
+            codeParticles.push({
+                x: monitor.x + monitor.width / 2,
+                y: monitor.y,
+                text: snippet.text,
+                consoleColor: snippet.consoleColor,
+                logColor: snippet.logColor,
+                meowColor: snippet.meowColor,
+                size: 12,
+                speedX: Math.random() * 2 - 1,
+                speedY: Math.random() * -2 - 1,
+                targetX: canvas.width - 25,
+                targetY: 50,
+                alpha: 1
+            });
+        }
+
+        function update() {
+            if (!gameStarted) return;
+
+            // Auto-activate code mode if cat is in front of monitor
+            if (isCatNearMonitor()) {
+                codeMode = true;
+            } else {
+                codeMode = false;
+            }
+
+            // Gravity
+            cat.velocityY += 0.5;
+            cat.y += cat.velocityY;
+
+            // Keep cat on the desk
+            let onGround = false;
+            if (cat.y + cat.height > desk.y) {
+                cat.y = desk.y - cat.height;
+                cat.velocityY = 0;
+                cat.isJumping = false;
+                onGround = true;
+            }
+
+            // Shelf collision detection
+            shelves.forEach(shelf => {
+                if (cat.x < shelf.x + shelf.width &&
+                    cat.x + cat.width > shelf.x &&
+                    cat.y + cat.height > shelf.y &&
+                    cat.y < shelf.y + shelf.height &&
+                    cat.velocityY >= 0) {
+                    cat.y = shelf.y - cat.height;
+                    cat.velocityY = 0;
+                    cat.isJumping = false;
+                    onGround = true;
+                }
+            });
+
+            // Movement
+            if (keys['ArrowLeft']) {
+                cat.x -= cat.speed;
+            }
+            if (keys['ArrowRight']) {
+                cat.x += cat.speed;
+            }
+
+            // Keep cat within bounds
+            if (cat.x < 0) {
+                cat.x = 0;
+            }
+            if (cat.x + cat.width > canvas.width) {
+                cat.x = canvas.width - cat.width;
+            }
+
+            // Update code particles
+            codeParticles.forEach((particle, index) => {
+                particle.x += particle.speedX;
+                particle.y += particle.speedY;
+                const dx = particle.targetX - particle.x;
+                const dy = particle.targetY - particle.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 10) {
+                    codeParticles.splice(index, 1);
+                    animateScore(10); // Animate score increase
+                }
+
+                particle.alpha -= 0.01;
+                if (particle.alpha <= 0) {
+                    codeParticles.splice(index, 1);
+                }
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw desk
+            ctx.fillStyle = desk.color;
+            ctx.fillRect(desk.x, desk.y, desk.width, desk.height);
+
+            // Draw shelves
+            shelves.forEach(shelf => {
+                ctx.fillStyle = shelf.color;
+                ctx.fillRect(shelf.x, shelf.y, shelf.width, shelf.height);
+            });
+
+            // Draw monitor as emoji
+            ctx.font = `${monitor.width}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('🖥️', monitor.x + monitor.width / 2, monitor.y);
+
+            // Draw cat: sideways or back view
+            ctx.save();
+            ctx.translate(cat.x + cat.width / 2, cat.y + cat.height / 2);
+            let facing = 1;
+            if (keys['ArrowLeft'] && !keys['ArrowRight']) facing = -1;
+            ctx.scale(facing, 1);
+            let walkCycle = 0;
+            if (cat.isJumping) {
+                walkCycle = Math.sin(Date.now() / 120) * 2;
+            } else if (keys['ArrowLeft'] || keys['ArrowRight']) {
+                walkCycle = Math.sin(Date.now() / 120) * 4;
+            }
+
+            // If in code mode, show back view with tip-tapping paws
+            if (codeMode) {
+                // --- BACK VIEW ---
+                // Body (back, rounder)
+                ctx.fillStyle = '#222';
+                ctx.beginPath();
+                ctx.ellipse(0, 8, 13, 11, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Head (back, round)
+                ctx.beginPath();
+                ctx.arc(0, -6, 9, 0, Math.PI * 2);
+                ctx.fill();
+                // Ears (back, on head)
+                ctx.beginPath();
+                ctx.moveTo(-6, -14);
+                ctx.lineTo(-3, -22);
+                ctx.lineTo(0, -10);
+                ctx.moveTo(6, -14);
+                ctx.lineTo(3, -22);
+                ctx.lineTo(0, -10);
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                // Tail (back, up)
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(0, 18);
+                ctx.bezierCurveTo(0, 32, 8, 38 + walkCycle, 0, 48 + walkCycle);
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                ctx.restore();
+                // Paws (tip-tapping)
+                let tap = Math.abs(Math.sin(Date.now() / 80));
+                let tap2 = Math.abs(Math.sin(Date.now() / 80 + 1));
+                // Left paw
+                ctx.save();
+                ctx.translate(-6, 18 + tap * 3);
+                ctx.rotate(-0.2 + tap * 0.2);
+                ctx.fillStyle = '#222';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 3, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                // Right paw
+                ctx.save();
+                ctx.translate(6, 18 + tap2 * 3);
+                ctx.rotate(0.2 - tap2 * 0.2);
+                ctx.fillStyle = '#222';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 3, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            } else {
+                // --- SIDEWAYS VIEW ---
+                // Body (sideways oval)
+                ctx.fillStyle = '#222';
+                ctx.beginPath();
+                ctx.ellipse(2, 6, 14, 7, Math.PI / 12, 0, Math.PI * 2);
+                ctx.fill();
+                // Head (sideways circle, slightly forward)
+                ctx.beginPath();
+                ctx.ellipse(16, -2, 7, 8, Math.PI / 16, 0, Math.PI * 2);
+                ctx.fill();
+                // Ears (sideways, lowered to sit on head)
+                ctx.beginPath();
+                ctx.moveTo(21, -4);
+                ctx.lineTo(19, -12);
+                ctx.lineTo(16, 2);
+                ctx.moveTo(11, -4);
+                ctx.lineTo(13, -12);
+                ctx.lineTo(16, 2);
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                // Eye (single, side profile)
+                ctx.beginPath();
+                ctx.ellipse(19, -4, 1.5, 2, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(19, -4, 0.7, 1, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'black';
+                ctx.fill();
+                // Nose (side, pink)
+                ctx.beginPath();
+                ctx.ellipse(23, -1, 0.7, 1, 0, 0, Math.PI * 2);
+                ctx.fillStyle = '#eab';
+                ctx.fill();
+                // Tail (points up, cleanly attached to body)
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(-10, 0);
+                ctx.bezierCurveTo(-18, -18 - walkCycle, -6, -38 - walkCycle, 0, -32 - walkCycle);
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                ctx.restore();
+                // Legs (sideways, move when walking)
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 4;
+                // Back leg
+                ctx.beginPath();
+                ctx.moveTo(-2, 13);
+                ctx.lineTo(-2 + walkCycle, 22 - walkCycle);
+                ctx.stroke();
+                // Front leg
+                ctx.beginPath();
+                ctx.moveTo(8, 13);
+                ctx.lineTo(8 - walkCycle, 22 + walkCycle);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // Draw code particles (improved spacing, preserve colors)
+            codeParticles.forEach(particle => {
+                ctx.globalAlpha = particle.alpha;
+                ctx.font = `${particle.size}px monospace`;
+                // Use regex to split and keep delimiters, including whitespace
+                const words = particle.text.match(/\s+|\w+|[^\w\s]+/g) || [];
+                let xOffset = 0;
+                const letterSpacing = particle.size * .25; // add a little extra for spaces
+                words.forEach(word => {
+                    let color = 'white';
+                    if (word === 'console') color = particle.consoleColor;
+                    else if (word === 'log') color = particle.logColor;
+                    else if (word === 'meow' || word === 'tuna' || word === 'yarn' || word === 'purr') color = particle.meowColor;
+                    else if (word === 'cat' || word === 'Food' || word === 'wakeUp' || word === 'debug' || word === 'error' || word === 'function' || word === 'return' || word === 'if' || word === 'let' || word === 'new') color = 'lightblue';
+                    else if (['isSleeping'].includes(word)) color = 'orange';
+                    ctx.fillStyle = color;
+                    ctx.fillText(word, Math.round(particle.x + xOffset), particle.y);
+                    let width = ctx.measureText(word).width;
+                    // If word is only whitespace, add extra spacing
+                    if (/^\s+$/.test(word)) {
+                        width += letterSpacing * word.length;
+                    }
+                    xOffset += width;
+                });
+                ctx.globalAlpha = 1;
+            });
+        }
+
+        let keys = {};
+
+        // For tip-tapping animation, track if user is typing
+        let tipTapping = false;
+        let tipTapTimeout;
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.key === 'ArrowUp' && !cat.isJumping) {
+                cat.velocityY = -10;
+                cat.isJumping = true;
+            }
+            if (codeMode && e.key.match(/^[a-z]$/)) {
+                generateCodeParticle();
+                animateScore(1);
+                tipTapping = true;
+                clearTimeout(tipTapTimeout);
+                tipTapTimeout = setTimeout(() => { tipTapping = false; }, 120);
+            }
+        });
+
+        function animateScore(points) {
+            let startScore = score;
+            let endScore = score + points;
+            const animationDuration = 20;
+            const startTime = performance.now();
+
+            function updateScore(currentTime) {
+                const elapsedTime = currentTime - startTime;
+                const progress = Math.min(elapsedTime / animationDuration, 1);
+                const animatedScore = Math.floor(startScore + (endScore - startScore) * progress);
+                gitAdditions.textContent = animatedScore;
+                updateGitCubeColor(animatedScore);
+                if (progress < 1) {
+                    requestAnimationFrame(updateScore);
+                } else {
+                    score = endScore;
+                    gitAdditions.textContent = score;
+                    updateGitCubeColor(score);
+                }
+            }
+
+            requestAnimationFrame(updateScore);
+        }
+
+        function updateGitCubeColor(currentScore) {
+            // 0 = grey, 10k = #2ea043 (GitHub green)
+            const maxScore = 1000;
+            const percent = Math.min(currentScore / maxScore, 1);
+            // interpolate from grey (#888) to green (#2ea043)
+            function lerp(a, b, t) { return a + (b - a) * t; }
+            function hexToRgb(hex) {
+                hex = hex.replace('#', '');
+                if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
+                const num = parseInt(hex, 16);
+                return [num >> 16, (num >> 8) & 0xff, num & 0xff];
+            }
+            function rgbToHex([r, g, b]) {
+                return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+            }
+            const grey = hexToRgb('#888');
+            const green = hexToRgb('#2ea043');
+            const color = [
+                Math.round(lerp(grey[0], green[0], percent)),
+                Math.round(lerp(grey[1], green[1], percent)),
+                Math.round(lerp(grey[2], green[2], percent))
+            ];
+            gitCube.style.background = rgbToHex(color);
+        }
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        startButton.addEventListener('click', () => {
+            gameStarted = true;
+            startScreen.style.display = 'none';
+
+            // Manually define the shelves
+            shelves = [
+                { x: 100, y: 200, width: 100, height: 20, color: 'grey' },
+                { x: 300, y: 300, width: 100, height: 20, color: 'grey' },
+                { x: 500, y: 100, width: 100, height: 20, color: 'grey' }
+            ];
+
+            gameLoop();
+        });
+    </script>
+</body>
+</html>
