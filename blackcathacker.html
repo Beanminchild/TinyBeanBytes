@@ -185,7 +185,7 @@
         };
 
         const monitor = {
-            x: canvas.width / 2 - 25,
+            x: canvas.width / 2.4,
             y: desk.y - 50,
             width: 100,
             height: 100,
@@ -249,12 +249,14 @@
             const codeSnippets = [
                 { text: "console.log(meow')", consoleColor: 'white', logColor: 'green', meowColor: 'lightblue' },
                 { text: "cat.jump()", consoleColor: 'white', logColor: 'orange', meowColor: 'white' },
-                { text: "if ( cat.  Slep) { wakeUp() }", consoleColor: 'white', logColor: 'yellow', meowColor: 'white' },
+                { text: "if ( cat.Slep) { slepMore() }", consoleColor: 'white', logColor: 'yellow', meowColor: 'white' },
                 { text: "let catFood = new Food('tuna')", consoleColor: 'white', logColor: 'red', meowColor: 'white' },
                 { text: "cat . play('yarn')", consoleColor: 'white', logColor: 'purple', meowColor: 'white' },
                 { text: "debug('cat position : ' + cat.x + ', ' + cat.y)", consoleColor: 'white', logColor: 'cyan', meowColor: 'white' },
-                { text: "error (' no more catnip ')", consoleColor: 'white', logColor: 'red', meowColor: 'white' },
-                { text: "function purr() { return ' purr ' }", consoleColor: 'white', logColor: 'lime', meowColor: 'white' }
+                { text: "error ('no more catnip')", consoleColor: 'white', logColor: 'red', meowColor: 'white' },
+                { text: "function headscratch() { return ' purr ' }", consoleColor: 'white', logColor: 'lime', meowColor: 'white' },
+                { text: "cat.hunt('laser pointer')", consoleColor: 'white', logColor: 'pink', meowColor: 'white' },
+                {text: "while bowlEmpty(true) { meow() }", consoleColor: 'white', logColor: 'lightgreen', meowColor: 'red' }
             ];
 
             const snippet = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
@@ -318,7 +320,7 @@
                         endGame();
                         return;
                     }
-                    if (handsHoldTimer >= 90000) { // 1:30 in ms
+                    if (handsHoldTimer >= 30000) { // 1:30 in ms
                         stealthState = 'footstepsBack';
                         footstepsBackProgress = 0;
                         lastHandsSecond = null;
@@ -455,53 +457,114 @@
             } else {
                 doorOpen = 0;
             }
-            if (doorOpen > 0) {
-                // Draw swinging door
-                ctx.save();
-                ctx.translate(doorX + 60, doorY + 70);
-                ctx.rotate(-Math.PI/2 * doorOpen);
-                ctx.fillStyle = '#5a3c1a';
-                ctx.fillRect(-60, -70, 60, 140);
-                ctx.strokeStyle = '#3a220a';
-                ctx.lineWidth = 5;
-                ctx.strokeRect(-60, -70, 60, 140);
-                // Door knob on open door
-                ctx.beginPath();
-                const knobAngle = -Math.PI/2 * doorOpen;
-                const knobX = Math.cos(knobAngle) * 52;
-                const knobY = Math.sin(knobAngle) * 52;
-                ctx.arc(knobX, knobY, 6, 0, Math.PI * 2);
-                ctx.fillStyle = '#eab676';
-                ctx.fill();
-                ctx.restore();
-                // Light beam
-                ctx.save();
-                ctx.globalAlpha = 0.5 * doorOpen;
-                const grad = ctx.createLinearGradient(doorX + 60, doorY + 70, doorX + 260, doorY + 200);
-                grad.addColorStop(0, 'rgba(255,255,180,0.7)');
-                grad.addColorStop(1, 'rgba(255,255,180,0)');
-                ctx.fillStyle = grad;
-                ctx.beginPath();
-                ctx.moveTo(doorX + 60, doorY + 70);
-                ctx.lineTo(doorX + 260, doorY + 40);
-                ctx.lineTo(doorX + 260, doorY + 200);
-                ctx.closePath();
-                ctx.fill();
-                ctx.restore();
-            } else {
-                // Draw closed door only
-                ctx.fillStyle = '#5a3c1a';
-                ctx.fillRect(doorX, doorY, 60, 140);
-                ctx.strokeStyle = '#3a220a';
-                ctx.lineWidth = 5;
-                ctx.strokeRect(doorX, doorY, 60, 140);
-                // Door knob
-                ctx.beginPath();
-                ctx.arc(doorX + 52, doorY + 70, 6, 0, Math.PI * 2);
-                ctx.fillStyle = '#eab676';
-                ctx.fill();
-            }
-            ctx.restore();
+            // params
+const doorW = 60, doorH = 140;
+const hingeLeft = true;             // set false for right hinge
+const hingeX = hingeLeft ? doorX : doorX + doorW;
+const hingeY = doorY + doorH / 2;
+function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+const t = Math.max(0, Math.min(1, doorOpen)); // 0..1
+const eased = easeOutCubic(t);
+const maxAngle = Math.PI / 2 * 0.98; // nearly 90°
+const angle = (hingeLeft ? -1 : 1) * maxAngle * eased;
+
+// door thickness and perspective factors
+const thickness = 12;                 // visible edge thickness in px
+const depthScale = 0.6;              // how "thin" the face becomes at full open
+const skew = 0.6;                     // skew factor for trapezoid edge
+
+if (t > 0) {
+  ctx.save();
+  // move to hinge
+  ctx.translate(hingeX, hingeY);
+  //ctx.rotate(angle); // dont need this this is the bad rotation around the wrong axis
+
+  // Compute face transform: draw rect with hinge at x=0, y=-doorH/2
+  // To fake perspective, scale X slightly based on angle
+  const faceScaleX = 1 - Math.abs(Math.sin(angle)) * depthScale;
+  ctx.save();
+  ctx.scale(faceScaleX, 1);
+  ctx.fillStyle = '#5a3c1a';
+  ctx.fillRect(0, -doorH/2, doorW, doorH);
+  ctx.strokeStyle = '#3a220a';
+  ctx.lineWidth = 5 / faceScaleX; // keep stroke visually consistent
+  ctx.strokeRect(0, -doorH/2, doorW, doorH);
+  // knob drawn in face local coords; adjust for scale
+  const knobLocalX = doorW - 8;
+  const knobLocalY = 0;
+  ctx.beginPath();
+  ctx.arc(knobLocalX, knobLocalY, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#eab676';
+  ctx.fill();
+  ctx.restore(); // restore from scale
+
+  // draw visible edge (the door thickness) as a trapezoid
+  // Edge direction depends on hinge side and sign of angle
+  const sign = hingeLeft ? 1 : -1;
+  const absAng = Math.abs(angle);
+  if (absAng > 0.01) {
+    // tip location at outer edge of face (in rotated space)
+    const tipX = Math.cos(0) * doorW; // before rotation; we're in rotated coords
+    const tipTopY = -doorH/4;
+    const tipBottomY = doorH/4;
+
+    // compute offset for thickness using angle
+    const edgeOffsetX = sign * thickness * Math.cos(absAng) ;
+    const edgeOffsetY = thickness * Math.sin(absAng) * skew;
+
+    ctx.beginPath();
+    // top outer corner
+    ctx.moveTo(doorW, -doorH/2);
+    // top outer + offset
+    ctx.lineTo(doorW + edgeOffsetX, -doorH/2 + edgeOffsetY);
+    // bottom outer + offset
+    ctx.lineTo(doorW + edgeOffsetX, doorH/2 + edgeOffsetY);
+    // bottom outer
+    ctx.lineTo(doorW, doorH/2);
+    ctx.closePath();
+    // darker color for edge
+    ctx.fillStyle = '#452a12';
+    ctx.fill();
+    ctx.strokeStyle = '#2c1907';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // light beam: compute world coords of door tip
+  const worldAngle = angle; // rotation applied about hinge
+  const tipWorldX = hingeX + Math.cos(worldAngle) * doorW * (1);
+  const tipWorldY = hingeY + Math.sin(worldAngle) * doorW * (1);
+
+  ctx.save();
+  ctx.globalAlpha = 0.5 * eased;
+  const grad = ctx.createLinearGradient(tipWorldX, tipWorldY, tipWorldX + 200, tipWorldY + 80);
+  grad.addColorStop(0, 'rgba(255,255,180,0.7)');
+  grad.addColorStop(1, 'rgba(255,255,180,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(hingeX, hingeY);
+  ctx.lineTo(tipWorldX + 200, tipWorldY - 30);
+  ctx.lineTo(tipWorldX + 200, tipWorldY + 150);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+} else {
+  // closed door
+  ctx.save();
+  ctx.fillStyle = '#5a3c1a';
+  ctx.fillRect(doorX, doorY, doorW, doorH);
+  ctx.strokeStyle = '#3a220a';
+  ctx.lineWidth = 5;
+  ctx.strokeRect(doorX, doorY, doorW, doorH);
+  ctx.beginPath();
+  ctx.arc(doorX + doorW - 8, doorY + doorH/2, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#eab676';
+  ctx.fill();
+  ctx.restore();
+}
 
             // --- END BACKGROUND ---
 
@@ -524,7 +587,7 @@
                     if (t > footprintsProgress) break;
                     // Path from door to desk
                     const fx = doorX + 60 + (canvas.width/2 - (doorX + 60)) * t;
-                    const fy = doorY + 70 + (desk.y - (doorY + 70)) * t * 0.8;
+                    const fy = doorY + 140 + (desk.y - (doorY + 70)) * t * 0.8;
                     ctx.save();
                     ctx.globalAlpha = 0.5 + 0.5 * t;
                     ctx.fillStyle = '#222';
@@ -540,7 +603,7 @@
                 for (let i = 0; i < steps - gone; i++) {
                     const t = i / (steps - 1);
                     const fx = doorX + 60 + (canvas.width/2 - (doorX + 60)) * t;
-                    const fy = doorY + 70 + (desk.y - (doorY + 70)) * t * 0.8;
+                    const fy = doorY + 140 + (desk.y - (doorY + 70)) * t * 0.8;
                     ctx.save();
                     ctx.globalAlpha = 0.5 + 0.5 * t;
                     ctx.fillStyle = '#222';
